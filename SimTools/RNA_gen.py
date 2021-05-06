@@ -59,13 +59,23 @@ class File_Generator():
         self.sequence_oracle = so
     def set_len_oracle(self,lo):
         self.length_oracle=lo
+    def get_sequences(self,seqs=1):
+        lo = self.length_oracle
+        so = self.sequence_oracle
+        collection=[]
+        for num in range(0,seqs):
+            len = lo.get_length()
+            seq = so.get_sequence(len)
+            collection.append(seq)
+        return collection
     def write_file(self,seqs=10):
         fn = self.filename
         lo = self.length_oracle
         so = self.sequence_oracle
         with open(fn, 'w') as outfa:
             for num in range(0,seqs):
-                outfa.write(">sequence_"+str(num)+"\n")
+                id="random_%07d"%num
+                outfa.write(">%s\n"%id)
                 len = lo.get_length()
                 seq = so.get_sequence(len)
                 outfa.write(seq+"\n")
