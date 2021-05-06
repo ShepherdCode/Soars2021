@@ -1,4 +1,5 @@
-import os, sys, traceback, argparse
+import traceback
+import argparse
 import random
 
 def assert_imported_RNA_gen():
