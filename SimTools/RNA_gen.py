@@ -49,7 +49,7 @@ class Sequence_Oracle():
         seq=''.join(rnd)
         return seq
 
-class File_Generator():
+class Collection_Generator():
     '''Generate one file of simulated RNA.'''
     def __init__(self,debug=False):
         self.debug=debug
@@ -108,7 +108,7 @@ if __name__ == "__main__":
         numlines=args.numlines
         outfile=args.outfile
         debug=args.debug
-        gen = File_Generator(debug)
+        gen = Collection_Generator(debug)
         gen.set_filename(outfile)
         gen.write_fasta(numlines)
     except Exception:
