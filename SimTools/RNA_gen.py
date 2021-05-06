@@ -39,6 +39,7 @@ class Sequence_Oracle():
         if not len(seqs) == len(freqs):
             print("WARN: len(seqs)!=len(freqs)")
             return False
+        # TO DO: check for valid freqs
     def get_sequence(self,len):
         rnd = random.choices(self.seqs,
             weights=self.freqs,k=len)
