@@ -1,16 +1,48 @@
 import os, sys, traceback, argparse
+import random
 
 class Length_Oracle():
-    '''Generate one sequence length.'''
+    '''Generate one sequence length.
+    Always returns the same number.
+    This is intended as a base class.'''
+    def __init__(self):
+        self.set_mean(50)
+    def set_mean(self,mean):
+        self.mean=mean
     def get_length(self):
-        return 50
+        return self.mean
 
 class Sequence_Oracle():
     '''Generate one RNA sequence.'''
     def __init__(self,debug=False):
         self.debug=debug
+        self.set_sequences()
+        self.set_frequencies()
+        self.check_params()
+        self.set_reproducible(True)
+    def set_sequences(self,seqs=['A','C','G','T']):
+        self.seqs=seqs
+    def set_frequencies(self,freqs=[1,1,1,1]):
+        self.freqs=freqs
+    def set_reproducible(self,same):
+        if same:
+            REPRODUCIBLE_SEED=42
+            random.seed(REPRODUCIBLE_SEED)
+        else:
+            random.seed(None)
+    def check_params(self):
+        seqs=self.seqs
+        freqs=self.freqs
+        if len(seqs)==0 or len(freqs)==0:
+            print("WARN: missing seqs or freqs")
+            return False
+        if not len(seqs) == len(freqs):
+            print("WARN: len(seqs)!=len(freqs)")
+            return False
     def get_sequence(self,len):
-        seq = "A"*len
+        rnd = random.choices(self.seqs,
+            weights=self.freqs,k=len)
+        seq=''.join(rnd)
         return seq
 
 class File_Generator():
@@ -18,17 +50,23 @@ class File_Generator():
     def __init__(self,debug=False):
         self.debug=debug
         self.filename="Generated_RNA.fasta"
-        self.seq_oracle=Sequence_Oracle()
-        self.len_oracle=Length_Oracle()
+        self.set_seq_oracle(Sequence_Oracle())
+        self.set_len_oracle(Length_Oracle())
     def set_filename(self,fn):
         self.filename=fn
+    def set_seq_oracle(self,so):
+        self.sequence_oracle = so
+    def set_len_oracle(self,lo):
+        self.length_oracle=lo
     def write_file(self,seqs=10):
         fn = self.filename
+        lo = self.length_oracle
+        so = self.sequence_oracle
         with open(fn, 'w') as outfa:
             for num in range(0,seqs):
                 outfa.write(">sequence_"+str(num)+"\n")
-                len = self.len_oracle.get_length()
-                seq = self.seq_oracle.get_sequence(len)
+                len = lo.get_length()
+                seq = so.get_sequence(len)
                 outfa.write(seq+"\n")
 
 def args_parse():
