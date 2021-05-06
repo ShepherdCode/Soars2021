@@ -1,6 +1,9 @@
 import os, sys, traceback, argparse
 import random
 
+def assert_imported_RNA_gen():
+    return True
+
 class Length_Oracle():
     '''Generate one sequence length.
     Always returns the same number.
@@ -68,7 +71,7 @@ class File_Generator():
             seq = so.get_sequence(len)
             collection.append(seq)
         return collection
-    def write_file(self,seqs=10):
+    def write_fasta(self,seqs=10):
         fn = self.filename
         lo = self.length_oracle
         so = self.sequence_oracle
@@ -107,7 +110,7 @@ if __name__ == "__main__":
         debug=args.debug
         gen = File_Generator(debug)
         gen.set_filename(outfile)
-        gen.write_file(numlines)
+        gen.write_fasta(numlines)
     except Exception:
         print()
         if args.debug:
