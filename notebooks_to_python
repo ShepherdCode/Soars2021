@@ -1,0 +1,10 @@
+#!/usr/bin/env python3
+import glob
+import os
+
+listing = glob.glob('Notebooks/*.ipynb')
+
+for file in listing:
+        print(file)
+        os.system('jupyter nbconvert --output-dir Scripts --to script ' + str(file))
+
