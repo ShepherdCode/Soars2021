@@ -63,6 +63,10 @@ class Collection_Generator():
         self.sequence_oracle = so
     def set_len_oracle(self,lo):
         self.length_oracle=lo
+    def get_seq_oracle(self):
+        return self.sequence_oracle
+    def get_len_oracle(self):
+        return self.length_oracle
     def get_sequences(self,seqs=1):
         lo = self.length_oracle
         so = self.sequence_oracle
