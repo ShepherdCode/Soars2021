@@ -32,10 +32,23 @@ class RNA_describer():
                 longest_orf=(one_pos,one_len)
         return longest_orf
     def get_orf_lengths(self,seqs):
-        '''Return list of largest ORF length per sequence.'''
+        '''Given list of zero to many sequences.
+        Return list of largest ORF length per sequence.'''
         lens = []
         for one_seq in seqs:
+            # orf=(offset,length)
             one_orf = self.get_longest_orf(one_seq)
-            one_len = one_orf[1]  # orf=(offset,length)
+            one_len = one_orf[1]
             lens.append(one_len)
         return lens
+    def get_three_boundaries(self,seqs):
+        '''Given list of zero to many sequences.
+        Return list of three coords per sequence.
+        [ (orf_start, orf_end, seq_end) ]'''
+        bounds = []
+        for one_seq in seqs:
+            # orf=(offset,length)
+            one_orf = self.get_longest_orf(one_seq)
+            one_bound = (one_orf[0],one_orf[0]+one_orf[1],len(one_seq))
+            bounds.append(one_bound)
+        return bounds
