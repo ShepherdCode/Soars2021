@@ -18,6 +18,11 @@ class RNA_describer():
                 return pos+clen
         return 0 # missing stop
     def get_longest_orf(self,seq):
+        '''Find longest ATG...TAG in any frame.
+        Return tuple (pos,len).
+        Position is offset starting at zero.
+        Length includes ATG and TAG.
+        Returns (0,0) if none found.'''
         clen=RNA_describer.CODON_LEN
         rlen = len(seq)
         longest_orf=(0,0) # offset, len
