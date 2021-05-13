@@ -41,14 +41,23 @@ class RNA_describer():
             one_len = one_orf[1]
             lens.append(one_len)
         return lens
-    def get_three_boundaries(self,seqs):
+    def get_three_lengths(self,seqs):
         '''Given list of zero to many sequences.
-        Return list of three coords per sequence.
-        [ (orf_start, orf_end, seq_end) ]'''
+        Return list of three lengths per sequence.
+        [ (5'UTR, ORF, 3'UTR) ].
+        This support statistical characterization of a data set.
+        For sequences lacking an ORF, return (len/2,0,len/2).'''
         bounds = []
         for one_seq in seqs:
             # orf=(offset,length)
             one_orf = self.get_longest_orf(one_seq)
-            one_bound = (one_orf[0],one_orf[0]+one_orf[1],len(one_seq))
+            seq_length=len(one_seq)
+            orf_length=one_orf[1]
+            if orf_length==0:
+                one_bound = ((seq_length+1)//2,0,seq_length//2)
+            else:
+                utr5_length=one_orf[0]
+                utr3_length=seq_length-utr5_length-orf_length
+                one_bound = (utr5_length,orf_length,utr3_length)
             bounds.append(one_bound)
         return bounds

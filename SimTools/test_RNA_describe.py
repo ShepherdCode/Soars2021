@@ -36,7 +36,9 @@ class Test_RNA_describer():
         rn = RNA_describer()
         msg = "Return list of lengths"
         assert rn.get_orf_lengths(['ATG'+'TGA','ATG'+'AAA'+'TGA'])==[6,9],msg
-    def test_three_boundaries(self):
+    def test_three_lengths(self):
         rn = RNA_describer()
-        msg = "Return [ (orf_start,orf_end,seq_len) ]"
-        assert rn.get_three_boundaries(['CAT'+'ATG'+'GGG'+'TGA'+'AAA'])==[(3,12,15)],msg
+        msg = "Return lengths [ (5'UTR,ORF,3'UTR) ]"
+        assert rn.get_three_lengths(['CAT'+'ATG'+'GGG'+'TGA'+'AAA'])==[(3,9,3)],msg
+        msg = "Return lengths [ (half,0,half) ]"
+        assert rn.get_three_lengths(['CCC'+'AAA'])==[(3,0,3)],msg
