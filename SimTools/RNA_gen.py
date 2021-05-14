@@ -38,25 +38,52 @@ class Sequence_Oracle():
             print("WARN: len(seqs)!=len(freqs)")
             return False
         # TO DO: check for valid freqs
-    def get_sequence(self,len):
+    def get_sequence(self,length):
         rnd = random.choices(self.seqs,
-            weights=self.freqs,k=len)
+            weights=self.freqs,k=length)
         seq=''.join(rnd)
         return seq
 
 class Transcript_Oracle(Sequence_Oracle):
     def __init__(self):
-        self.orf_oracle = Sequence_Oracle()
-        # TO DO: change next line to use codons
-        self.orf_oracle.set_frequencies([0,0,0,1])
-        self.utr_portion=3  # one third
         super().__init__()
-    def get_sequence(self,len):
-        utr_len = len//self.utr_portion
-        orf_len = len - utr_len - utr_len
+        self.utr_portion=3  # one third
+        self.START = 'ATG'
+        self.STOPS = ['TAA','TAG','TGA']
+        self.BASES = 'ACGT'
+        self.MIN_LEN = 3+6+3  # UTR+START+STOP+UTR
+        codons = self.make_codons()
+        freqs = [1]*len(codons)
+        self.orf_oracle = Sequence_Oracle()
+        self.orf_oracle.set_sequences(codons)
+        self.orf_oracle.set_frequencies(freqs)
+    def make_codons(self):
+        codons=[]
+        bb=self.BASES
+        num_bases=len(bb)
+        for i in range(0,num_bases):
+            for j in range(0,num_bases):
+                for k in range(0,num_bases):
+                    codon=bb[i]+bb[j]+bb[k]
+                    codons.append(codon)
+        for stop in self.STOPS:
+            codons.remove(stop)
+        return codons
+    def get_sequence(self,length):
+        if length<self.MIN_LEN:
+            # Too short. Just return random sequence.
+            return super.get_sequence(length)
+        utr_len = length//self.utr_portion # measured in bases
+        orf_len = length - utr_len - utr_len
+        orf_len = orf_len - len(self.START) # START added explicitly
+        orf_len = orf_len - len(self.STOPS[0]) # STOP added explicitly
+        orf_len = orf_len//len(self.START) # measured in codons
         utr5 = super().get_sequence(utr_len)
         utr3 = super().get_sequence(utr_len)
-        orf = self.orf_oracle.get_sequence(orf_len)
+        orf = self.START
+        orf = orf + self.orf_oracle.get_sequence(orf_len)
+        orf = orf + random.choice(self.STOPS)
+        # orf = orf.lower()  # for visual debugging
         return utr5 + orf + utr3
 
 class Collection_Generator():
