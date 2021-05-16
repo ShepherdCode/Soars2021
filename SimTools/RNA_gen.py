@@ -12,11 +12,18 @@ class Length_Oracle():
     Always returns the same number.
     Intended as a base class.'''
     def __init__(self):
-        self.set_mean(50) # arbitrary default
+        self.mean=50 # arbitrary default
+        self.stddev=0
     def set_mean(self,mean):
         self.mean=mean
+    def set_stddev(self,std):
+        self.stddev=std
     def get_length(self):
-        return self.mean
+        value=self.mean
+        if self.stddev>0:
+            value=random.gauss(self.mean,self.stddev)
+            value=int(value+0.5)
+        return value
 
 class Sequence_Oracle():
     '''Generate one RNA sequence.
@@ -57,6 +64,7 @@ class Transcript_Oracle(Sequence_Oracle):
         self.orf_portion=2  # ORF len = transcript len / 2
         self.utr5_portion=2 # UTR5 len = total UTR / 2
         self.min_orf_len=9  # START+CODON+STOP
+        self.var=1/6  # orf len stddev/mean
         self.codon_size=3
         self.START = 'ATG'
         self.STOPS = ['TAA','TAG','TGA']
@@ -93,6 +101,7 @@ class Transcript_Oracle(Sequence_Oracle):
     def __get_orf(self,tlen):
         orflen_target = tlen//self.orf_portion
         self.orflen_oracle.set_mean(orflen_target)
+        self.orflen_oracle.set_stddev(orflen_target*self.var)
         orflen_actual = self.orflen_oracle.get_length()
         orflen_actual = min(tlen,orflen_actual)
         orflen_actual -= orflen_actual%self.codon_size
