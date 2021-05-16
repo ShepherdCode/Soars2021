@@ -10,16 +10,18 @@ def assert_imported_RNA_gen():
 class Length_Oracle():
     '''Generate one sequence length.
     Always returns the same number.
-    This is intended as a base class.'''
+    Intended as a base class.'''
     def __init__(self):
-        self.set_mean(50)
+        self.set_mean(50) # arbitrary default
     def set_mean(self,mean):
         self.mean=mean
     def get_length(self):
         return self.mean
 
 class Sequence_Oracle():
-    '''Generate one RNA sequence.'''
+    '''Generate one RNA sequence.
+    Use weighted random selection of given K-mers.
+    Intended as a base class.'''
     def __init__(self):
         self.set_sequences()
         self.set_frequencies()
@@ -45,52 +47,80 @@ class Sequence_Oracle():
         return seq
 
 class Transcript_Oracle(Sequence_Oracle):
-    def __init__(self):
+    '''Return a sequence containing an ORF.
+    The ORF is centered along the transcript.
+    The start is always ATG but the stop is randomly chosen.
+    The codons are uniform random but without stops.'''
+    def __init__(self,debug):
         super().__init__()
-        self.utr_portion=3  # one third
+        self.debug = debug
+        self.orf_portion=2  # ORF len = transcript len / 2
+        self.utr5_portion=2 # UTR5 len = total UTR / 2
+        self.min_orf_len=9  # START+CODON+STOP
+        self.codon_size=3
         self.START = 'ATG'
         self.STOPS = ['TAA','TAG','TGA']
-        self.BASES = 'ACGT'
-        self.MIN_LEN = 3+6+3  # UTR+START+STOP+UTR
-        codons = self.make_codons()
+        codons = Transcript_Oracle.make_codons('ACGT')
+        codons = Transcript_Oracle.remove_stops(codons,self.STOPS)
         freqs = [1]*len(codons)
-        self.orf_oracle = Sequence_Oracle()
-        self.orf_oracle.set_sequences(codons)
-        self.orf_oracle.set_frequencies(freqs)
-    def make_codons(self):
+        # subclasses could use change these
+        self.orflen_oracle = Length_Oracle()
+        self.codons_oracle = Sequence_Oracle()
+        self.codons_oracle.set_sequences(codons)
+        self.codons_oracle.set_frequencies(freqs)
+    def make_codons(bases):
         codons=[]
-        bb=self.BASES
-        num_bases=len(bb)
+        num_bases=len(bases)
         for i in range(0,num_bases):
             for j in range(0,num_bases):
                 for k in range(0,num_bases):
-                    codon=bb[i]+bb[j]+bb[k]
+                    codon=bases[i]+bases[j]+bases[k]
                     codons.append(codon)
-        for stop in self.STOPS:
+        return codons
+    def remove_stops(codons,stops):
+        for stop in stops:
             codons.remove(stop)
         return codons
     def get_sequence(self,length):
-        if length<self.MIN_LEN:
-            # Too short. Just return random sequence.
-            return super.get_sequence(length)
-        utr_len = length//self.utr_portion # measured in bases
-        orf_len = length - utr_len - utr_len
-        orf_len = orf_len - len(self.START) # START added explicitly
-        orf_len = orf_len - len(self.STOPS[0]) # STOP added explicitly
-        orf_len = orf_len//len(self.START) # measured in codons
-        utr5 = super().get_sequence(utr_len)
-        utr3 = super().get_sequence(utr_len)
-        orf = self.START
-        orf = orf + self.orf_oracle.get_sequence(orf_len)
-        orf = orf + random.choice(self.STOPS)
-        # orf = orf.lower()  # for visual debugging
+        '''Generates 5'UTR + ORF + 3'UTR.
+        Both UTR contain random sequence.
+        ORF structure is START+CODON(S)+STOP.'''
+        orf = self.__get_orf(length)
+        utr5,utr3 = self.__get_utr(length,len(orf))
+        if self.debug:
+            orf = orf.lower()  # for visual debugging
         return utr5 + orf + utr3
+    def __get_orf(self,tlen):
+        orflen_target = tlen//self.orf_portion
+        self.orflen_oracle.set_mean(orflen_target)
+        orflen_actual = self.orflen_oracle.get_length()
+        orflen_actual = min(tlen,orflen_actual)
+        orflen_actual -= orflen_actual%self.codon_size
+        if orflen_actual<self.min_orf_len:
+            # Too short. Just return random sequence.
+            return super.get_sequence(tlen)
+        num_codons = orflen_actual//self.codon_size
+        num_codons -= 2 # START and STOP are automatic
+        orf = self.START
+        orf += self.codons_oracle.get_sequence(num_codons)
+        orf += random.choice(self.STOPS)
+        return orf
+    def __get_utr(self,tlen,orflen):
+        utr5 = ''
+        utr3 = ''
+        utr5_len = (tlen-orflen)//self.utr5_portion
+        utr3_len = tlen - orflen - utr5_len
+        if utr5_len > 0:
+            utr5 = super().get_sequence(utr5_len)
+        if utr3_len > 0:
+            utr3 = super().get_sequence(utr3_len)
+        return utr5,utr3
 
 class Collection_Generator():
-    '''Generate one file of simulated RNA.'''
+    '''Generate one collection of simulated RNA.
+    Optionally write the collection to a FASTA file.'''
     def __init__(self,debug=False):
-        self.debug=debug
-        self.filename="Generated_RNA.fasta"
+        self.debug=debug  # needed?
         self.set_seq_oracle(Sequence_Oracle())
         self.set_len_oracle(Length_Oracle())
     def set_reproducible(self,same):
@@ -99,8 +129,6 @@ class Collection_Generator():
             random.seed(REPRODUCIBLE_SEED)
         else:  # default pseudo-random behavior
             random.seed(None)
-    def set_filename(self,fn):
-        self.filename=fn
     def set_seq_oracle(self,so):
         self.sequence_oracle = so
     def set_len_oracle(self,lo):
@@ -110,6 +138,7 @@ class Collection_Generator():
     def get_len_oracle(self):
         return self.length_oracle
     def get_sequences(self,seqs=1):
+        '''Return a list of simulated RNA strings.'''
         lo = self.length_oracle
         so = self.sequence_oracle
         collection=[]
@@ -118,11 +147,11 @@ class Collection_Generator():
             seq = so.get_sequence(len)
             collection.append(seq)
         return collection
-    def write_fasta(self,seqs=10):
-        fn = self.filename
+    def write_fasta(self,filename,seqs=10):
+        '''Write a file of simulated RNA strings.'''
         lo = self.length_oracle
         so = self.sequence_oracle
-        with open(fn, 'w') as outfa:
+        with open(filename, 'w') as outfa:
             for num in range(0,seqs):
                 id="random_%07d"%num
                 outfa.write(">%s\n"%id)
@@ -137,7 +166,7 @@ def args_parse():
         description='RNA Simulator.')
     parser.add_argument(
         'numlines',
-        help='output file size (10)',
+        help='desired sequence count',
         type=int)
     parser.add_argument(
         'outfile',
@@ -161,9 +190,8 @@ if __name__ == "__main__":
         debug=args.debug
         gen = Collection_Generator(debug)
         if args.transcript:
-            gen.set_seq_oracle(Transcript_Oracle())
-        gen.set_filename(outfile)
-        gen.write_fasta(numlines)
+            gen.set_seq_oracle(Transcript_Oracle(debug))
+        gen.write_fasta(outfile,numlines)
     except Exception:
         print()
         if args.debug:
