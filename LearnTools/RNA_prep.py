@@ -1,8 +1,10 @@
 from sklearn.utils import shuffle
 import numpy as np
 
-def prepare_inputs_len_x_alphabet(
-pc_seqs,nc_seqs,alphabet_size,with_shuffle=True):
+def assert_imported_RNA_prep():
+    return True
+
+def prepare_inputs_len_x_alphabet(pc_seqs,nc_seqs,alphabet_size,with_shuffle=True):
     samples = nc_seqs + pc_seqs
     seq_len=len(nc_seqs[0]) # TO DO: error on empty or non-uniform
     num_samples=len(samples)

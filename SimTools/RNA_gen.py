@@ -58,7 +58,7 @@ class Transcript_Oracle(Sequence_Oracle):
     The ORF is centered along the transcript.
     The start is always ATG but the stop is randomly chosen.
     The codons are uniform random but without stops.'''
-    def __init__(self,debug):
+    def __init__(self,debug=False):
         super().__init__()
         self.debug = debug
         self.orf_portion=2  # ORF len = transcript len / 2
