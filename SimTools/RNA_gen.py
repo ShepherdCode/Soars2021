@@ -91,7 +91,7 @@ class Transcript_Oracle(Sequence_Oracle):
             codons.remove(stop)
         return codons
     def set_orf_len_mean(self,value):
-        self.orf_len=(value)
+        self.orf_len=value
     def get_sequence(self,length):
         '''Generates 5'UTR + ORF + 3'UTR.
         Both UTR contain random sequence.
