@@ -61,6 +61,7 @@ class Transcript_Oracle(Sequence_Oracle):
     def __init__(self,debug=False):
         super().__init__()
         self.debug = debug
+        self.orf_len=None # by default, use portion of transcript
         self.orf_portion=2  # ORF len = transcript len / 2
         self.utr5_portion=2 # UTR5 len = total UTR / 2
         self.min_orf_len=9  # START+CODON+STOP
@@ -89,6 +90,8 @@ class Transcript_Oracle(Sequence_Oracle):
         for stop in stops:
             codons.remove(stop)
         return codons
+    def set_orf_len_mean(self,value):
+        self.orf_len=(value)
     def get_sequence(self,length):
         '''Generates 5'UTR + ORF + 3'UTR.
         Both UTR contain random sequence.
@@ -99,7 +102,10 @@ class Transcript_Oracle(Sequence_Oracle):
             orf = orf.lower()  # for visual debugging
         return utr5 + orf + utr3
     def __get_orf(self,tlen):
-        orflen_target = tlen//self.orf_portion
+        if self.orf_len is None:
+            orflen_target = tlen//self.orf_portion
+        else:
+            orflen_target = self.orf_len # user settable
         self.orflen_oracle.set_mean(orflen_target)
         self.orflen_oracle.set_stddev(orflen_target*self.var)
         orflen_actual = self.orflen_oracle.get_length()
