@@ -1,53 +1,32 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# # CNN Demo
-# TO DO: add a CoLab badge
+# # ORF recognition by CNN
 # 
-# Can a convolutional neural network (CNN) be trained to distinguish RNA
-# from nucleotide composition alone?
-# More specifically, can a CNN learn to classify  
-# AT-rich sequence with the label "protein coding"
-# from GC-rich sequence with the label "non-coding"?
-# 
-# This demo uses an RNA sequence simulator.
-# The simulator strictly follows a frequency histogram with values for A, C, G, T.
-# This is a noise-free simulation.
-# 
-# The CNN is almost as simple as can be.
-# It has one trainiable convolution layer (one dimensional) with 8 filters.
-# It has one flatten layer simply to reshape the data.
-# It has a trainable fully connected (dense) output layer with 1 neuron.
-# More sophisticated models would incorporate embedding, pooling, dropout,
-# multiple convolution layers, and multiple dense layers.
-# 
-# The training regime is also simple.
-# The model is trained for a fixed number of epochs.
-# More sophisticated training would implement early stopping.
-# 
-# This model minimizes loss at 5 epochs and overfits by 10 epochs.
+# Establish reproducible test results.
 
-# ## Computing Environment Setup
-
-# In[4]:
+# In[1]:
 
 
 PC_SEQUENCES=2000   # how many protein-coding sequences
 NC_SEQUENCES=2000   # how many non-coding sequences
-BASES=55            # how long is each sequence
+PC_TESTS=1000
+NC_TESTS=1000
+BASES=1000            # how long is each sequence
 ALPHABET=4          # how many different letters are possible
 INPUT_SHAPE_2D = (BASES,ALPHABET,1) # Conv2D needs 3D inputs
 INPUT_SHAPE = (BASES,ALPHABET) # Conv1D needs 2D inputs
-FILTERS = 8   # how many different patterns the model looks for
+FILTERS = 32   # how many different patterns the model looks for
+NEURONS = 16
 WIDTH = 3   # how wide each pattern is, in bases
 STRIDE_2D = (1,1)  # For Conv2D how far in each direction
 STRIDE = 1 # For Conv1D, how far between pattern matches, in bases
 EPOCHS=5  # how many times to train on all the data
-SPLITS=4  # SPLITS=3 means train on 2/3 and validate on 1/3 
-FOLDS=5  # train the model this many times (must be 1 to SPLITS)
+SPLITS=5  # SPLITS=3 means train on 2/3 and validate on 1/3 
+FOLDS=1  # train the model this many times (range 1 to SPLITS)
 
 
-# In[5]:
+# In[2]:
 
 
 import sys
@@ -62,11 +41,15 @@ try:
     import requests
     r = requests.get('https://raw.githubusercontent.com/ShepherdCode/Soars2021/master/SimTools/RNA_gen.py')
     with open('RNA_gen.py', 'w') as f:
-        f.write(r.text)  # writes to cloud local, delete the file later?
+        f.write(r.text)  
     from RNA_gen import *
-    s = requests.get('https://raw.githubusercontent.com/ShepherdCode/Soars2021/master/LearnTools/RNA_prep.py')
+    r = requests.get('https://raw.githubusercontent.com/ShepherdCode/Soars2021/master/SimTools/RNA_describe.py')
+    with open('RNA_describe.py', 'w') as f:
+        f.write(r.text)  
+    from RNA_describe import *
+    r = requests.get('https://raw.githubusercontent.com/ShepherdCode/Soars2021/master/SimTools/RNA_prep.py')
     with open('RNA_prep.py', 'w') as f:
-        f.write(s.text)  # writes to cloud local, delete the file later?
+        f.write(r.text)  
     from RNA_prep import *
 except:
     print("CoLab not working. On my PC, use relative paths.")
@@ -74,16 +57,19 @@ except:
     DATAPATH='data/'  # must end in "/"
     sys.path.append("..") # append parent dir in order to use sibling dirs
     from SimTools.RNA_gen import *
-    from LearnTools.RNA_prep import *
+    from SimTools.RNA_describe import *
+    from SimTools.RNA_prep import *
 
 MODELPATH="BestModel"  # saved on cloud instance and lost after logout
 #MODELPATH=DATAPATH+MODELPATH  # saved on Google Drive but requires login
 
 if not assert_imported_RNA_gen():
     print("ERROR: Cannot use RNA_gen.")
+if not assert_imported_RNA_prep():
+    print("ERROR: Cannot use RNA_prep.")
 
 
-# In[6]:
+# In[3]:
 
 
 from os import listdir
@@ -112,70 +98,57 @@ mycmap = colors.ListedColormap(['red','blue'])  # list color for label 0 then 1
 np.set_printoptions(precision=2)
 
 
-# ## Data Preparation
-
-# In[7]:
+# In[4]:
 
 
-# print(datetime.datetime.now())
 t = time.time()
 time.strftime('%Y-%m-%d %H:%M:%S %Z', time.localtime(t))
 
 
-# In[8]:
+# In[5]:
 
 
 # Use code from our SimTools library.
-def make_generator(seq_len):
-    cgen = Collection_Generator()  
-    cgen.get_len_oracle().set_mean(seq_len)
-    return cgen
-def make_seqs(cgen,is_pc,train_count,test_count):
-    freqs = [1,1,1,1]  # the relative frequencies for four nucleotides
-    if is_pc:
-        freqs = [2,1,1,2]  # protein-coding has more A and T
-    else:
-        pass # non-coding is random uniform
-    cgen.get_seq_oracle().set_frequencies(freqs)    
-    train_set = cgen.get_sequences(train_count)
-    test_set =  cgen.get_sequences(test_count)
-    return train_set,test_set
+def make_generators(seq_len):
+    pcgen = Collection_Generator()  
+    pcgen.get_len_oracle().set_mean(seq_len)
+    pcgen.set_seq_oracle(Transcript_Oracle())
+    ncgen = Collection_Generator()  
+    ncgen.get_len_oracle().set_mean(seq_len)
+    return pcgen,ncgen
 
-simulator = make_generator(BASES)
-pc_train,pc_test = make_seqs(simulator,True, PC_SEQUENCES,PC_SEQUENCES)
-nc_train,nc_test = make_seqs(simulator,False,NC_SEQUENCES,NC_SEQUENCES)
+pc_sim,nc_sim = make_generators(BASES)
+pc_train = pc_sim.get_sequences(PC_SEQUENCES)
+nc_train = nc_sim.get_sequences(NC_SEQUENCES)
 print("Train on",len(pc_train),"PC seqs")
 print("Train on",len(nc_train),"NC seqs")
 
 
-# In[9]:
+# In[6]:
 
 
 # Use code from our LearnTools library.
 X,y = prepare_inputs_len_x_alphabet(pc_train,nc_train,ALPHABET) # shuffles
-print("Assume y=f(X) and we want to learn f().")
-print("Each input X is a sequence of A, C, G, or T. Use upper case for vector variables.")
-print("Each output label y is a single number 0 to 1. Use lower case for scalar variables.")
-print("X shape:",X.shape, "includes PC and NC sequences shuffled.")
-print("y shape:",y.shape, "includes 0s and 1s that match specific sequences.")
+print("Data ready.")
 
 
-# ## Model build, train, save
-
-# In[10]:
+# In[7]:
 
 
 def make_DNN():
     print("make_DNN")
     print("input shape:",INPUT_SHAPE)
     dnn = Sequential()
-    #dnn.add(Embedding(input_dim=4,output_dim=4)) 
-    dnn.add(Conv1D(filters=FILTERS,kernel_size=WIDTH,strides=STRIDE,
-                  padding="same",input_shape=INPUT_SHAPE))
-    # Data shape: [SAMPLES,BASES,FILTERS]
-    #dnn.add(MaxPooling1D())
+    #dnn.add(Embedding(input_dim=INPUT_SHAPE,output_dim=INPUT_SHAPE)) 
+    dnn.add(Conv1D(filters=FILTERS,kernel_size=WIDTH,strides=STRIDE,padding="same",
+            input_shape=INPUT_SHAPE))
+    dnn.add(Conv1D(filters=FILTERS,kernel_size=WIDTH,strides=STRIDE,padding="same"))
+    dnn.add(MaxPooling1D())
+    dnn.add(Conv1D(filters=FILTERS,kernel_size=WIDTH,strides=STRIDE,padding="same"))
+    dnn.add(Conv1D(filters=FILTERS,kernel_size=WIDTH,strides=STRIDE,padding="same"))
+    dnn.add(MaxPooling1D())
     dnn.add(Flatten())
-    # Data shape: [SAMPLES,BASES*FILTERS]
+    dnn.add(Dense(NEURONS,activation="sigmoid",dtype=np.float32))   
     dnn.add(Dense(1,activation="sigmoid",dtype=np.float32))   
     dnn.compile(optimizer='adam',
                 loss=BinaryCrossentropy(from_logits=False),
@@ -189,7 +162,7 @@ model = make_DNN()
 print(model.summary())
 
 
-# In[11]:
+# In[8]:
 
 
 from keras.callbacks import ModelCheckpoint
@@ -227,18 +200,20 @@ def do_cross_validation(X,y):
             plt.show()
 
 
-# In[12]:
+# In[9]:
 
 
 do_cross_validation(X,y)
 
 
-# ## Test
-
-# In[13]:
+# In[11]:
 
 
 from keras.models import load_model
+pc_sim.set_reproducible(True)
+nc_sim.set_reproducible(True)
+pc_test = pc_sim.get_sequences(PC_TESTS)
+nc_test = nc_sim.get_sequences(NC_TESTS)
 X,y = prepare_inputs_len_x_alphabet(pc_test,nc_test,ALPHABET)
 best_model=load_model(MODELPATH)
 scores = best_model.evaluate(X, y, verbose=0)
@@ -250,7 +225,7 @@ print("Test on",len(nc_test),"NC seqs")
 print("%s: %.2f%%" % (best_model.metrics_names[1], scores[1]*100))
 
 
-# In[14]:
+# In[12]:
 
 
 from sklearn.metrics import roc_curve
@@ -268,9 +243,10 @@ plt.xlabel('False Positive Rate')
 plt.ylabel('True Positive Rate')
 plt.legend()
 plt.show()
+print("%s: %.2f%%" %('AUC',bm_auc))
 
 
-# In[14]:
+# In[ ]:
 
 
 
