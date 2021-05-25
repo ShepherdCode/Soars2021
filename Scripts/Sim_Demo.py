@@ -64,7 +64,7 @@ def make_seqs(cgen,is_pc,train_count,test_count):
 import numpy as np
 def get_the_facts(seqs):
     rd = RNA_describer()
-    facts = rd.get_three_lengths(seq_set)
+    facts = rd.get_three_lengths(seqs)
     facts_ary = np.asarray(facts) # 5000 rows, 3 columns 
     print("Facts array:",type(facts_ary))
     print("Facts array:",facts_ary.shape)

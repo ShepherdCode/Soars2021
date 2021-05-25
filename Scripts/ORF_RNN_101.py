@@ -1,12 +1,8 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# # ORF recognition by CNN
-# 
-# The convolutional neural network (CNN) was invented for image processing.
-# Here, we use Conv1D layers with filter width=3. 
-# We have previously seen high accuracy with some overfitting.
-# Here, apply dropout to reduce overfitting.
+# # ORF recognition by RNN
+# The LSTM could recognize ORFs of 50bp in 100bp simulated RNA. What can RNN do?
 
 # In[1]:
 
@@ -23,17 +19,13 @@ PC_SEQUENCES=20000   # how many protein-coding sequences
 NC_SEQUENCES=20000   # how many non-coding sequences
 PC_TESTS=1000
 NC_TESTS=1000
-BASES=1000            # how long is each sequence
+BASES=100            # how long is each sequence
 ALPHABET=4          # how many different letters are possible
 INPUT_SHAPE_2D = (BASES,ALPHABET,1) # Conv2D needs 3D inputs
 INPUT_SHAPE = (BASES,ALPHABET) # Conv1D needs 2D inputs
-FILTERS = 32   # how many different patterns the model looks for
-NEURONS = 16
-DROP_RATE = 0.2
-WIDTH = 3   # how wide each pattern is, in bases
-STRIDE_2D = (1,1)  # For Conv2D how far in each direction
-STRIDE = 1 # For Conv1D, how far between pattern matches, in bases
-EPOCHS=10  # how many times to train on all the data
+NEURONS = 32
+#DROP_RATE = 0.2
+EPOCHS=50  # how many times to train on all the data
 SPLITS=5  # SPLITS=3 means train on 2/3 and validate on 1/3 
 FOLDS=5  # train the model this many times (range 1 to SPLITS)
 
@@ -98,8 +90,7 @@ from sklearn.model_selection import cross_val_score
 
 from keras.models import Sequential
 from keras.layers import Dense,Embedding,Dropout
-from keras.layers import Conv1D,Conv2D
-from keras.layers import Flatten,MaxPooling1D,MaxPooling2D
+from keras.layers import LSTM,GRU,SimpleRNN
 from keras.losses import BinaryCrossentropy
 # tf.keras.losses.BinaryCrossentropy
 
@@ -120,12 +111,26 @@ def make_generators(seq_len):
     ncgen = Collection_Generator()  
     ncgen.get_len_oracle().set_mean(seq_len)
     return pcgen,ncgen
+def get_the_facts(seqs):
+    rd = RNA_describer()
+    facts = rd.get_three_lengths(seqs)
+    facts_ary = np.asarray(facts) # 5000 rows, 3 columns 
+    print("Facts array:",type(facts_ary))
+    print("Facts array:",facts_ary.shape)
+    # Get the mean of each column
+    mean_5utr, mean_orf, mean_3utr = np.mean(facts_ary,axis=0)
+    std_5utr, std_orf, std_3utr = np.std(facts_ary,axis=0)
+    print("mean 5' UTR length:",int(mean_5utr),"+/-",int(std_5utr))
+    print("mean    ORF length:",int(mean_orf), "+/-",int(std_orf))
+    print("mean 3' UTR length:",int(mean_3utr),"+/-",int(std_3utr))
 
 pc_sim,nc_sim = make_generators(BASES)
 pc_train = pc_sim.get_sequences(PC_SEQUENCES)
 nc_train = nc_sim.get_sequences(NC_SEQUENCES)
 print("Train on",len(pc_train),"PC seqs")
+get_the_facts(pc_train)
 print("Train on",len(nc_train),"NC seqs")
+get_the_facts(nc_train)
 
 
 # In[6]:
@@ -143,22 +148,17 @@ def make_DNN():
     print("make_DNN")
     print("input shape:",INPUT_SHAPE)
     dnn = Sequential()
-    #dnn.add(Embedding(input_dim=INPUT_SHAPE,output_dim=INPUT_SHAPE)) 
-    dnn.add(Conv1D(filters=FILTERS,kernel_size=WIDTH,strides=STRIDE,padding="same",
-            input_shape=INPUT_SHAPE))
-    dnn.add(Conv1D(filters=FILTERS,kernel_size=WIDTH,strides=STRIDE,padding="same"))
-    dnn.add(MaxPooling1D())
-    dnn.add(Conv1D(filters=FILTERS,kernel_size=WIDTH,strides=STRIDE,padding="same"))
-    dnn.add(Conv1D(filters=FILTERS,kernel_size=WIDTH,strides=STRIDE,padding="same"))
-    dnn.add(MaxPooling1D())
-    dnn.add(Flatten())
+    #dnn.add(Embedding(input_dim=ALPHABET, output_dim=ALPHABET))
+        #VOCABULARY_SIZE, EMBED_DIMEN, input_length=1000, input_length=1000, mask_zero=True)
+        #input_dim=[None,VOCABULARY_SIZE], output_dim=EMBED_DIMEN, mask_zero=True)
+    dnn.add(SimpleRNN(NEURONS,return_sequences=True,input_shape=INPUT_SHAPE))
+    dnn.add(SimpleRNN(NEURONS,return_sequences=False)) 
     dnn.add(Dense(NEURONS,activation="sigmoid",dtype=np.float32))   
-    dnn.add(Dropout(DROP_RATE))
     dnn.add(Dense(1,activation="sigmoid",dtype=np.float32))   
     dnn.compile(optimizer='adam',
                 loss=BinaryCrossentropy(from_logits=False),
                 metrics=['accuracy'])   # add to default metrics=loss
-    dnn.build(input_shape=INPUT_SHAPE)
+    dnn.build() # input_shape=INPUT_SHAPE)
     #ln_rate = tf.keras.optimizers.Adam(learning_rate = LN_RATE)
     #bc=tf.keras.losses.BinaryCrossentropy(from_logits=False)
     #model.compile(loss=bc, optimizer=ln_rate, metrics=["accuracy"])
@@ -259,8 +259,7 @@ time.strftime('%Y-%m-%d %H:%M:%S %Z', time.localtime(t))
 
 
 # ## Conclusion
-# 20% dropout may have reduced overfitting by a small amount.
-# We should try more dropout.
+# This Simple RNN was incapable of recognizing ORFs of length 50 in simulated RNA of length 100.
 
 # In[ ]:
 

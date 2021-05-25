@@ -1,14 +1,10 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# # ORF recognition by CNN
+# # ORF recognition by LSTM
 # 
-# The convolutional neural network (CNN) was invented for image processing.
-# Here, we use Conv1D layers with filter width=3. 
-# We have previously seen high accuracy with some overfitting.
-# Here, apply dropout to reduce overfitting.
 
-# In[1]:
+# In[32]:
 
 
 import time 
@@ -16,7 +12,7 @@ t = time.time()
 time.strftime('%Y-%m-%d %H:%M:%S %Z', time.localtime(t))
 
 
-# In[2]:
+# In[33]:
 
 
 PC_SEQUENCES=20000   # how many protein-coding sequences
@@ -27,18 +23,14 @@ BASES=1000            # how long is each sequence
 ALPHABET=4          # how many different letters are possible
 INPUT_SHAPE_2D = (BASES,ALPHABET,1) # Conv2D needs 3D inputs
 INPUT_SHAPE = (BASES,ALPHABET) # Conv1D needs 2D inputs
-FILTERS = 32   # how many different patterns the model looks for
-NEURONS = 16
-DROP_RATE = 0.2
-WIDTH = 3   # how wide each pattern is, in bases
-STRIDE_2D = (1,1)  # For Conv2D how far in each direction
-STRIDE = 1 # For Conv1D, how far between pattern matches, in bases
-EPOCHS=10  # how many times to train on all the data
+NEURONS = 64
+#DROP_RATE = 0.2
+EPOCHS=50  # how many times to train on all the data
 SPLITS=5  # SPLITS=3 means train on 2/3 and validate on 1/3 
-FOLDS=5  # train the model this many times (range 1 to SPLITS)
+FOLDS=1  # train the model this many times (range 1 to SPLITS)
 
 
-# In[3]:
+# In[34]:
 
 
 import sys
@@ -81,7 +73,7 @@ if not assert_imported_RNA_prep():
     print("ERROR: Cannot use RNA_prep.")
 
 
-# In[4]:
+# In[35]:
 
 
 from os import listdir
@@ -97,9 +89,8 @@ from sklearn.model_selection import KFold
 from sklearn.model_selection import cross_val_score
 
 from keras.models import Sequential
-from keras.layers import Dense,Embedding,Dropout
-from keras.layers import Conv1D,Conv2D
-from keras.layers import Flatten,MaxPooling1D,MaxPooling2D
+from keras.layers import Dense,Embedding,Dropout,TimeDistributed
+from keras.layers import LSTM
 from keras.losses import BinaryCrossentropy
 # tf.keras.losses.BinaryCrossentropy
 
@@ -109,7 +100,7 @@ mycmap = colors.ListedColormap(['red','blue'])  # list color for label 0 then 1
 np.set_printoptions(precision=2)
 
 
-# In[5]:
+# In[36]:
 
 
 # Use code from our SimTools library.
@@ -128,7 +119,7 @@ print("Train on",len(pc_train),"PC seqs")
 print("Train on",len(nc_train),"NC seqs")
 
 
-# In[6]:
+# In[37]:
 
 
 # Use code from our SimTools library.
@@ -136,29 +127,27 @@ X,y = prepare_inputs_len_x_alphabet(pc_train,nc_train,ALPHABET) # shuffles
 print("Data ready.")
 
 
-# In[7]:
+# In[39]:
 
 
 def make_DNN():
     print("make_DNN")
     print("input shape:",INPUT_SHAPE)
     dnn = Sequential()
-    #dnn.add(Embedding(input_dim=INPUT_SHAPE,output_dim=INPUT_SHAPE)) 
-    dnn.add(Conv1D(filters=FILTERS,kernel_size=WIDTH,strides=STRIDE,padding="same",
-            input_shape=INPUT_SHAPE))
-    dnn.add(Conv1D(filters=FILTERS,kernel_size=WIDTH,strides=STRIDE,padding="same"))
-    dnn.add(MaxPooling1D())
-    dnn.add(Conv1D(filters=FILTERS,kernel_size=WIDTH,strides=STRIDE,padding="same"))
-    dnn.add(Conv1D(filters=FILTERS,kernel_size=WIDTH,strides=STRIDE,padding="same"))
-    dnn.add(MaxPooling1D())
-    dnn.add(Flatten())
-    dnn.add(Dense(NEURONS,activation="sigmoid",dtype=np.float32))   
-    dnn.add(Dropout(DROP_RATE))
+    #dnn.add(Embedding(input_dim=ALPHABET, output_dim=ALPHABET))
+        #VOCABULARY_SIZE, EMBED_DIMEN, input_length=1000, input_length=1000, mask_zero=True)
+        #input_dim=[None,VOCABULARY_SIZE], output_dim=EMBED_DIMEN, mask_zero=True)
+    dnn.add(LSTM(NEURONS,return_sequences=True,input_shape=INPUT_SHAPE))
+    dnn.add(LSTM(NEURONS,return_sequences=True))
+    dnn.add(LSTM(NEURONS,return_sequences=True)) 
+    # The first dense layer should be wrapped in TimeDistributed()
+    # but keras claims to autodetect and do that anyway.
+    dnn.add(TimeDistributed(Dense(NEURONS,activation="sigmoid",dtype=np.float32)))  
     dnn.add(Dense(1,activation="sigmoid",dtype=np.float32))   
     dnn.compile(optimizer='adam',
                 loss=BinaryCrossentropy(from_logits=False),
                 metrics=['accuracy'])   # add to default metrics=loss
-    dnn.build(input_shape=INPUT_SHAPE)
+    dnn.build() # input_shape=INPUT_SHAPE)
     #ln_rate = tf.keras.optimizers.Adam(learning_rate = LN_RATE)
     #bc=tf.keras.losses.BinaryCrossentropy(from_logits=False)
     #model.compile(loss=bc, optimizer=ln_rate, metrics=["accuracy"])
@@ -167,10 +156,13 @@ model = make_DNN()
 print(model.summary())
 
 
-# In[8]:
+# In[40]:
 
 
 from keras.callbacks import ModelCheckpoint
+# This keras class has a known bug in saving LSTM layers.
+# The recommended work-around is to save to HDF5 format.
+# Easier said than done.
 def do_cross_validation(X,y):
     cv_scores = []
     fold=0
@@ -205,13 +197,13 @@ def do_cross_validation(X,y):
             plt.show()
 
 
-# In[9]:
+# In[41]:
 
 
 do_cross_validation(X,y)
 
 
-# In[10]:
+# In[42]:
 
 
 from keras.models import load_model
@@ -230,7 +222,7 @@ print("Test on",len(nc_test),"NC seqs")
 print("%s: %.2f%%" % (best_model.metrics_names[1], scores[1]*100))
 
 
-# In[11]:
+# In[43]:
 
 
 from sklearn.metrics import roc_curve
@@ -248,22 +240,12 @@ plt.xlabel('False Positive Rate')
 plt.ylabel('True Positive Rate')
 plt.legend()
 plt.show()
-print("%s: %.2f%%" %('AUC',bm_auc*100.0))
+print("%s: %.2f%%" %('AUC',bm_auc))
 
-
-# In[12]:
-
-
-t = time.time()
-time.strftime('%Y-%m-%d %H:%M:%S %Z', time.localtime(t))
-
-
-# ## Conclusion
-# 20% dropout may have reduced overfitting by a small amount.
-# We should try more dropout.
 
 # In[ ]:
 
 
-
+t = time.time()
+time.strftime('%Y-%m-%d %H:%M:%S %Z', time.localtime(t))
 

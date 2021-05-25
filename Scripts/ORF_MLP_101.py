@@ -1,14 +1,11 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# # ORF recognition by CNN
+# # ORF recognition by MLP
 # 
-# The convolutional neural network (CNN) was invented for image processing.
-# Here, we use Conv1D layers with filter width=3. 
-# We have previously seen high accuracy with some overfitting.
-# Here, apply dropout to reduce overfitting.
+# Compare to ORF_CNN_105.
 
-# In[1]:
+# In[10]:
 
 
 import time 
@@ -16,7 +13,7 @@ t = time.time()
 time.strftime('%Y-%m-%d %H:%M:%S %Z', time.localtime(t))
 
 
-# In[2]:
+# In[11]:
 
 
 PC_SEQUENCES=20000   # how many protein-coding sequences
@@ -25,20 +22,21 @@ PC_TESTS=1000
 NC_TESTS=1000
 BASES=1000            # how long is each sequence
 ALPHABET=4          # how many different letters are possible
+CODON_SPACE=64
 INPUT_SHAPE_2D = (BASES,ALPHABET,1) # Conv2D needs 3D inputs
-INPUT_SHAPE = (BASES,ALPHABET) # Conv1D needs 2D inputs
-FILTERS = 32   # how many different patterns the model looks for
-NEURONS = 16
-DROP_RATE = 0.2
-WIDTH = 3   # how wide each pattern is, in bases
-STRIDE_2D = (1,1)  # For Conv2D how far in each direction
-STRIDE = 1 # For Conv1D, how far between pattern matches, in bases
-EPOCHS=10  # how many times to train on all the data
+INPUT_SHAPE = (BASES,CODON_SPACE) # Conv1D needs 2D inputs
+#FILTERS = 32   # how many different patterns the model looks for
+#WIDTH = 3   # how wide each pattern is, in bases
+#STRIDE_2D = (1,1)  # For Conv2D how far in each direction
+#STRIDE = 1 # For Conv1D, how far between pattern matches, in bases
+#NEURONS = 16
+DROP_RATE = 0.01
+EPOCHS=50  # how many times to train on all the data
 SPLITS=5  # SPLITS=3 means train on 2/3 and validate on 1/3 
 FOLDS=5  # train the model this many times (range 1 to SPLITS)
 
 
-# In[3]:
+# In[12]:
 
 
 import sys
@@ -81,7 +79,7 @@ if not assert_imported_RNA_prep():
     print("ERROR: Cannot use RNA_prep.")
 
 
-# In[4]:
+# In[13]:
 
 
 from os import listdir
@@ -109,7 +107,7 @@ mycmap = colors.ListedColormap(['red','blue'])  # list color for label 0 then 1
 np.set_printoptions(precision=2)
 
 
-# In[5]:
+# In[14]:
 
 
 # Use code from our SimTools library.
@@ -128,32 +126,25 @@ print("Train on",len(pc_train),"PC seqs")
 print("Train on",len(nc_train),"NC seqs")
 
 
-# In[6]:
+# In[15]:
 
 
 # Use code from our SimTools library.
-X,y = prepare_inputs_len_x_alphabet(pc_train,nc_train,ALPHABET) # shuffles
-print("Data ready.")
+X,y = prepare_inputs_codon_frequency(pc_train,nc_train) # shuffles
+print("X shape:",X.shape)
 
 
-# In[7]:
+# In[16]:
 
 
 def make_DNN():
     print("make_DNN")
     print("input shape:",INPUT_SHAPE)
     dnn = Sequential()
-    #dnn.add(Embedding(input_dim=INPUT_SHAPE,output_dim=INPUT_SHAPE)) 
-    dnn.add(Conv1D(filters=FILTERS,kernel_size=WIDTH,strides=STRIDE,padding="same",
-            input_shape=INPUT_SHAPE))
-    dnn.add(Conv1D(filters=FILTERS,kernel_size=WIDTH,strides=STRIDE,padding="same"))
-    dnn.add(MaxPooling1D())
-    dnn.add(Conv1D(filters=FILTERS,kernel_size=WIDTH,strides=STRIDE,padding="same"))
-    dnn.add(Conv1D(filters=FILTERS,kernel_size=WIDTH,strides=STRIDE,padding="same"))
-    dnn.add(MaxPooling1D())
-    dnn.add(Flatten())
-    dnn.add(Dense(NEURONS,activation="sigmoid",dtype=np.float32))   
-    dnn.add(Dropout(DROP_RATE))
+    dnn.add(Dense(64,activation="sigmoid",dtype=np.float32))   
+    dnn.add(Dense(64,activation="sigmoid",dtype=np.float32))   
+    dnn.add(Dense(64,activation="sigmoid",dtype=np.float32))   
+    dnn.add(Dense(64,activation="sigmoid",dtype=np.float32))   
     dnn.add(Dense(1,activation="sigmoid",dtype=np.float32))   
     dnn.compile(optimizer='adam',
                 loss=BinaryCrossentropy(from_logits=False),
@@ -167,7 +158,7 @@ model = make_DNN()
 print(model.summary())
 
 
-# In[8]:
+# In[17]:
 
 
 from keras.callbacks import ModelCheckpoint
@@ -205,13 +196,13 @@ def do_cross_validation(X,y):
             plt.show()
 
 
-# In[9]:
+# In[18]:
 
 
 do_cross_validation(X,y)
 
 
-# In[10]:
+# In[19]:
 
 
 from keras.models import load_model
@@ -219,7 +210,8 @@ pc_sim.set_reproducible(True)
 nc_sim.set_reproducible(True)
 pc_test = pc_sim.get_sequences(PC_TESTS)
 nc_test = nc_sim.get_sequences(NC_TESTS)
-X,y = prepare_inputs_len_x_alphabet(pc_test,nc_test,ALPHABET)
+X,y = prepare_inputs_codon_frequency(pc_train,nc_train) # shuffles
+print("X shape:",X.shape)
 best_model=load_model(MODELPATH)
 scores = best_model.evaluate(X, y, verbose=0)
 print("The best model parameters were saved during cross-validation.")
@@ -230,7 +222,7 @@ print("Test on",len(nc_test),"NC seqs")
 print("%s: %.2f%%" % (best_model.metrics_names[1], scores[1]*100))
 
 
-# In[11]:
+# In[20]:
 
 
 from sklearn.metrics import roc_curve
@@ -248,21 +240,17 @@ plt.xlabel('False Positive Rate')
 plt.ylabel('True Positive Rate')
 plt.legend()
 plt.show()
-print("%s: %.2f%%" %('AUC',bm_auc*100.0))
+print("%s: %.2f%%" %('AUC',bm_auc))
 
 
-# In[12]:
+# In[21]:
 
 
 t = time.time()
 time.strftime('%Y-%m-%d %H:%M:%S %Z', time.localtime(t))
 
 
-# ## Conclusion
-# 20% dropout may have reduced overfitting by a small amount.
-# We should try more dropout.
-
-# In[ ]:
+# In[21]:
 
 
 
