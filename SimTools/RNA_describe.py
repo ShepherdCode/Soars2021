@@ -1,3 +1,6 @@
+def assert_imported_RNA_describe():
+    return True
+
 class RNA_describer():
     START='ATG'
     STOPS=['TAA','TAG','TGA']
@@ -43,7 +46,8 @@ class RNA_describer():
         return lens
     def get_three_lengths(self,seqs):
         '''Given list of zero to many sequences.
-        Return list of three lengths per sequence.
+        Find and use the longest ORF per sequence.
+        Return list of three lengths per sequence, like this:
         [ (5'UTR, ORF, 3'UTR) ].
         This support statistical characterization of a data set.
         For sequences lacking an ORF, return (len/2,0,len/2).'''
