@@ -8,18 +8,16 @@ class RNA_describer():
     def get_orf_length(self,seq):
         '''Count bases to end of first in-frame stop codon.
         Return count start and stop codons (min len 6).
-        Assume first three bases are ATG.
+        Return 0 unless first three bases are ATG.
         Assume we'll find a STOP codon at some 3n position.
-        Else return zero.'''
+        Return 0 if no in-frame stop is found.'''
         clen=RNA_describer.CODON_LEN
-        if len(seq)<clen+clen:
-            return 0 # too short for start + stop
-        if not seq[0:clen] == RNA_describer.START:
-            return 0 # missing start
-        for pos in range(0,len(seq)-clen+1,clen):
-            if seq[pos:pos+clen] in RNA_describer.STOPS:
-                return pos+clen
-        return 0 # missing stop
+        if seq[0:clen] == RNA_describer.START:
+            if len(seq)>=clen+clen:
+                for pos in range(clen,len(seq)-clen+1,clen):
+                    if seq[pos:pos+clen] in RNA_describer.STOPS:
+                        return pos+clen
+        return 0
     def get_longest_orf(self,seq):
         '''Find longest ATG...TAG in any frame.
         Return tuple (offset,len).
@@ -30,9 +28,12 @@ class RNA_describer():
         rlen = len(seq)
         longest_orf=(0,0) # offset, len
         for one_pos in range(0,rlen):
-            one_len = self.get_orf_length(seq[one_pos:])
-            if one_len > longest_orf[1]:
-                longest_orf=(one_pos,one_len)
+            # TO DO: an optimization for seq like START,START,STOP.
+            # No need to count length at second START.
+            if seq[one_pos:one_pos+clen] == RNA_describer.START:
+                one_len = self.get_orf_length(seq[one_pos:])
+                if one_len > longest_orf[1]:
+                    longest_orf=(one_pos,one_len)
         return longest_orf
     def get_orf_lengths(self,seqs):
         '''Given list of zero to many sequences.
