@@ -19,7 +19,6 @@ class ORF_counter():
         return self.num_contained_orfs
     def __update__(self):
         RNA=self.RNA
-        print("RNA is",RNA)
         pos=len(RNA)-3
         if pos<3:
             return  # smallest ORF is 6 e.g. ATG TAA
@@ -29,7 +28,6 @@ class ORF_counter():
             base=RNA[pos]
             plus1=RNA[pos+1]
             plus2=RNA[pos+2]
-            print("base at",pos,"are",minus1,base,plus1,plus2)
             if base=='T' and plus1 in AG and plus2 in AG:
                 if plus1=='G':
                     if plus2=='A':
@@ -48,13 +46,11 @@ class ORF_counter():
     def __orf_ends_at__(self,pos):
         # to do: keep track of frame to reduce modulus calls
         frame=pos%3
-        print("stop at",pos,"frame",frame)
         self.prev_start[frame]=0
         self.prev_end[frame]=pos
     def __orf_starts_at__(self,pos):
         # to do: keep track of frame to reduce modulus calls
         frame=pos%3
-        print("start at",pos,"frame",frame)
         prev_start=self.prev_start[frame]
         prev_end=self.prev_end[frame]
         if prev_end>0:
