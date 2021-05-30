@@ -3,36 +3,39 @@ def assert_imported_RNA_describe():
 
 class ORF_counter():
     '''Assume RNA composed of ACGT upper case no N.'''
-    def __init__(self,seq):
-        self.RNA=seq
-        self.max_orf_len=0
-        self.num_maximal_orfs=0
-        self.num_contained_orfs=0
-        self.prev_end=[0,0,0]
-        self.prev_start=[0,0,0]
-        self.__update__()
+    def __init__(self,debug=False):
+        self.verbose=debug # debugging
+        self.set_sequence('')
     def get_max_orf_len(self):
         return self.max_orf_len
     def count_maximal_orfs(self):
         return self.num_maximal_orfs
     def count_contained_orfs(self):
         return self.num_contained_orfs
-    def __update__(self):
-        RNA=self.RNA
+    def set_sequence(self,RNA):
+        self.max_orf_len=0
+        self.num_maximal_orfs=0
+        self.num_contained_orfs=0
+        self.prev_end=[0,0,0]
+        self.prev_start=[0,0,0]
+        if self.verbose:
+            print("Seq",RNA)
+        self.RNA=RNA
         pos=len(RNA)-3
         if pos<3:
             return  # smallest ORF is 6 e.g. ATG TAA
         AG = ['A','G']
-        while(pos>0): # stop one before first letter
-            minus1=RNA[pos-1]
+        while(pos>=0):
             base=RNA[pos]
             plus1=RNA[pos+1]
             plus2=RNA[pos+2]
+            if self.verbose:
+                print("Pos",pos,"codon",RNA[pos:pos+3])
             if base=='T' and plus1 in AG and plus2 in AG:
                 if plus1=='G':
                     if plus2=='A':
                         self.__orf_ends_at__(pos) # TGA
-                    if minus1=='A':
+                    if pos>0 and RNA[pos-1]=='A':
                         self.__orf_starts_at__(pos-1) # ATGX
                 else: #   TAA, TAG
                     self.__orf_ends_at__(pos)
@@ -46,11 +49,15 @@ class ORF_counter():
     def __orf_ends_at__(self,pos):
         # to do: keep track of frame to reduce modulus calls
         frame=pos%3
+        if self.verbose:
+            print("Frame",frame,"ORF ends at",pos)
         self.prev_start[frame]=0
         self.prev_end[frame]=pos
     def __orf_starts_at__(self,pos):
         # to do: keep track of frame to reduce modulus calls
         frame=pos%3
+        if self.verbose:
+            print("Frame",frame,"ORF starts at",pos)
         prev_start=self.prev_start[frame]
         prev_end=self.prev_end[frame]
         if prev_end>0:
