@@ -1,7 +1,76 @@
 def assert_imported_RNA_describe():
     return True
 
+class ORF_counter():
+    '''Assume RNA composed of ACGT upper case no N.'''
+    def __init__(self,seq):
+        self.RNA=seq
+        self.max_orf_len=0
+        self.num_maximal_orfs=0
+        self.num_contained_orfs=0
+        self.prev_end=[0,0,0]
+        self.prev_start=[0,0,0]
+        self.__update__()
+    def get_max_orf_len(self):
+        return self.max_orf_len
+    def count_maximal_orfs(self):
+        return self.num_maximal_orfs
+    def count_contained_orfs(self):
+        return self.num_contained_orfs
+    def __update__(self):
+        RNA=self.RNA
+        print("RNA is",RNA)
+        pos=len(RNA)-3
+        if pos<3:
+            return  # smallest ORF is 6 e.g. ATG TAA
+        AG = ['A','G']
+        while(pos>0): # stop one before first letter
+            minus1=RNA[pos-1]
+            base=RNA[pos]
+            plus1=RNA[pos+1]
+            plus2=RNA[pos+2]
+            print("base at",pos,"are",minus1,base,plus1,plus2)
+            if base=='T' and plus1 in AG and plus2 in AG:
+                if plus1=='G':
+                    if plus2=='A':
+                        self.__orf_ends_at__(pos) # TGA
+                    if minus1=='A':
+                        self.__orf_starts_at__(pos-1) # ATGX
+                else: #   TAA, TAG
+                    self.__orf_ends_at__(pos)
+                pos=pos-3
+            elif base=='C':
+                pos=pos-3
+            else:
+                if base=='A' and plus1=='T' and plus2=='G':
+                    self.__orf_starts_at__(pos) # ATGX
+                pos=pos-1
+    def __orf_ends_at__(self,pos):
+        # to do: keep track of frame to reduce modulus calls
+        frame=pos%3
+        print("stop at",pos,"frame",frame)
+        self.prev_start[frame]=0
+        self.prev_end[frame]=pos
+    def __orf_starts_at__(self,pos):
+        # to do: keep track of frame to reduce modulus calls
+        frame=pos%3
+        print("start at",pos,"frame",frame)
+        prev_start=self.prev_start[frame]
+        prev_end=self.prev_end[frame]
+        if prev_end>0:
+            if prev_start>0:
+                # previously reported ORF wasn't maximal afterall
+                self.num_contained_orfs += 1
+            else:
+                # this orf is maximal (for now)
+                self.num_maximal_orfs += 1
+            this_len=prev_end-pos+3
+            if this_len>self.max_orf_len:
+                self.max_orf_len=this_len
+        self.prev_start[frame]=pos
+
 class RNA_describer():
+    '''Assume RNA composed of ACGT upper case no N.'''
     START='ATG'
     STOPS=['TAA','TAG','TGA']
     CODON_LEN=3 # codon length

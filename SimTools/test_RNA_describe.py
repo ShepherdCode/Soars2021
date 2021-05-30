@@ -1,5 +1,12 @@
 import pytest
 from RNA_describe import RNA_describer
+from RNA_describe import ORF_counter
+
+class Test_ORF_counter():
+    def test_three_codon_orf(self):
+        oc = ORF_counter('CATGCACTAGC')
+        msg= "Basic START CODON STOP = 9"
+        assert oc.get_max_orf_len()==9,msg
 
 class Test_RNA_describer():
     def test_orf_length(self):
