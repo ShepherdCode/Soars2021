@@ -7,8 +7,9 @@ def assert_imported_RNA_prep():
 def prepare_inputs_len_x_alphabet(pc_seqs,nc_seqs,alphabet_size,with_shuffle=True):
     # TO DO: eliminate alphabet_size and hard code the 4?
     samples = nc_seqs + pc_seqs
-    seq_len=len(nc_seqs[0]) # TO DO: error on empty or non-uniform
     num_samples=len(samples)
+    # Assume all sequences have same length
+    seq_len=len(samples[0]) # TO DO: allow non-uniform size
     X_shape = (num_samples,seq_len,alphabet_size)
     Y_shape = (num_samples,1) # one label per sequence
     y=np.concatenate((np.zeros(len(nc_seqs),dtype=np.int8),
