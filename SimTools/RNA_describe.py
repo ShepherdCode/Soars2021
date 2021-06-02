@@ -23,7 +23,7 @@ class ORF_counter():
         self.RNA=RNA
         pos=len(RNA)-3
         if pos<3:
-            return  # smallest ORF is 6 e.g. ATG TAA
+            return  # smallest ORF is ATG TAA
         AG = ['A','G']
         while(pos>=0):
             base=RNA[pos]
@@ -67,7 +67,7 @@ class ORF_counter():
             else:
                 # this orf is maximal (for now)
                 self.num_maximal_orfs += 1
-            this_len=prev_end-pos+3
+            this_len=prev_end-pos
             if this_len>self.max_orf_len:
                 self.max_orf_len=this_len
         self.prev_start[frame]=pos
@@ -78,17 +78,17 @@ class RNA_describer():
     STOPS=['TAA','TAG','TGA']
     CODON_LEN=3 # codon length
     def get_orf_length(self,seq):
-        '''Count bases to end of first in-frame stop codon.
-        Return count start and stop codons (min len 6).
+        '''Count bases within the ORF starting at position 0.
         Return 0 unless first three bases are ATG.
-        Assume we'll find a STOP codon at some 3n position.
-        Return 0 if no in-frame stop is found.'''
+        Count the start codon but not the stop codon (min len 3).
+        Only consider in-frame STOP codons.
+        Return 0 if no STOP is found.'''
         clen=RNA_describer.CODON_LEN
         if seq[0:clen] == RNA_describer.START:
             if len(seq)>=clen+clen:
                 for pos in range(clen,len(seq)-clen+1,clen):
                     if seq[pos:pos+clen] in RNA_describer.STOPS:
-                        return pos+clen
+                        return pos
         return 0
     def get_longest_orf(self,seq):
         '''Find longest ATG...TAG in any frame.
@@ -122,7 +122,7 @@ class RNA_describer():
         Find and use the longest ORF per sequence.
         Return list of three lengths per sequence, like this:
         [ (5'UTR, ORF, 3'UTR) ].
-        This support statistical characterization of a data set.
+        This supports statistical characterization of a data set.
         For sequences lacking an ORF, return (len/2,0,len/2).'''
         bounds = []
         for one_seq in seqs:
@@ -133,8 +133,11 @@ class RNA_describer():
             if orf_length==0:
                 one_bound = ((seq_length+1)//2,0,seq_length//2)
             else:
+                # 5'UTR ends where ORF begins
                 utr5_length=one_orf[0]
-                utr3_length=seq_length-utr5_length-orf_length
+                # 3'UTR begins after the stop codon
+                # (which was not counted as part of the ORF)
+                utr3_length=seq_length-utr5_length-orf_length-3
                 one_bound = (utr5_length,orf_length,utr3_length)
             bounds.append(one_bound)
         return bounds
