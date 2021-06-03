@@ -187,6 +187,11 @@ class FASTA_tool():
                     seq=""
                 else:
                     seq += sline
+            if seq is not None:
+                rna_len=len(seq)
+                oc.set_sequence(seq)
+                max_orf_len=oc.get_max_orf_len()
+                print(prev,rna_len,max_orf_len)
 
 
 def args_parse():
