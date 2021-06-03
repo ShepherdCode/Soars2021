@@ -7,9 +7,9 @@ class ORF_probability():
         print()
         for pos in range(min_orf_len,seq_len-3+1):
             print("pos=",pos)
-            p1 = 3/64 # prob of stop codon
+            p1 = 1/64 # prob of start codon
+            p2 = 3/64 # prob of stop codon
             # TO DO: prob of start & no stop for bases upstream
-            p2 = 61/64 # prob of non-stop codon
             prob = p1*p2
             print("p1=",p1,"p2=",p2,"prob=",prob)
         print(prob)
