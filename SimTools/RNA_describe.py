@@ -1,6 +1,24 @@
 def assert_imported_RNA_describe():
     return True
 
+class ORF_probability():
+    def canonical_ORF(self,seq_len,min_orf_len):
+        prob=0.0
+        print()
+        for pos in range(min_orf_len,seq_len-3+1):
+            print("pos=",pos)
+            p1 = 1/64 # prob of start codon
+            p2 = 3/64 # prob of stop codon
+            # TO DO: prob of start & no stop for bases upstream
+            prob = p1*p2
+            print("p1=",p1,"p2=",p2,"prob=",prob)
+        print(prob)
+        return prob
+    def start_codon(self,given_length):
+        return 0.0
+    def no_stop_codon(self,given_length):
+        return (3/64)**given_length
+
 class ORF_counter():
     '''Assume RNA composed of ACGT upper case no N.'''
     def __init__(self,debug=False):
