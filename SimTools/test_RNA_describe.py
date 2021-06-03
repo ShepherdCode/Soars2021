@@ -1,6 +1,20 @@
 import pytest
 from RNA_describe import RNA_describer
 from RNA_describe import ORF_counter
+from RNA_describe import ORF_probability
+
+# The following unix command will run all tests.
+# $ pytest
+# The -v option will list each test and show progress.
+# $ pytesst -v
+# By default, pytest captures stdout unless the tests fail.
+# Use this option to see the output of print() statements.
+# $ pytest --capture=tee-sys
+
+class Test_ORF_probability():
+    def test_canonical_ORF(self):
+        op=ORF_probability()
+        op.canonical_ORF(6,3)
 
 class Test_ORF_counter():
     def test_three_codon_orf(self):
