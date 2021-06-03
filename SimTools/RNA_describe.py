@@ -1,17 +1,23 @@
+import traceback
+import argparse
+
 def assert_imported_RNA_describe():
     return True
 
 class ORF_probability():
     def canonical_ORF(self,seq_len,min_orf_len):
         prob=0.0
+        pStop = 3/64 # prob of stop codon
+        pStart = 1/64 # prob of stop codon
         print()
-        for pos in range(min_orf_len,seq_len-3+1):
-            print("pos=",pos)
-            p1 = 1/64 # prob of start codon
-            p2 = 3/64 # prob of stop codon
-            # TO DO: prob of start & no stop for bases upstream
-            prob = p1*p2
-            print("p1=",p1,"p2=",p2,"prob=",prob)
+        for stop_pos in range(min_orf_len,seq_len-3+1):
+            print("stop pos=",stop_pos)
+            for start_pos in range(stop_pos-3,-1,-3):
+                print("start pos=",stop_pos)
+                orf_len=stop_pos-start_pos
+                if (orf_len >= min_orf_len):
+                    p1=pStart*pStop
+                    prob += p1
         print(prob)
         return prob
     def start_codon(self,given_length):
@@ -159,3 +165,56 @@ class RNA_describer():
                 one_bound = (utr5_length,orf_length,utr3_length)
             bounds.append(one_bound)
         return bounds
+
+class FASTA_tool():
+    def __init__(self,infile,debug=False):
+        self.fn=infile
+        self.verbose=debug
+    def show_all(self):
+        prev=None
+        seq=None
+        oc=ORF_counter()
+        with open(self.fn,'r') as inf:
+            for line in inf:
+                sline=line.rstrip()
+                if sline[0]=='>':
+                    if seq is not None:
+                        rna_len=len(seq)
+                        oc.set_sequence(seq)
+                        max_orf_len=oc.get_max_orf_len()
+                        print(prev,rna_len,max_orf_len)
+                    prev=sline[1:].split('|')[0]
+                    seq=""
+                else:
+                    seq += sline
+
+
+def args_parse():
+    '''RNA describer.'''
+    global args
+    parser = argparse.ArgumentParser(
+        description='RNA Describer.')
+    parser.add_argument(
+        'infile',
+        help='input filename (fasta)',
+        type=str)
+    parser.add_argument(
+        '--debug',
+        help='print traceback after exception.',
+        action='store_true')
+    args = parser.parse_args()
+
+if __name__ == "__main__":
+    try:
+        args_parse()
+        infile=args.infile
+        debug=args.debug
+        tool = FASTA_tool(infile,debug)
+        tool.show_all()
+    except Exception:
+        print()
+        if args.debug:
+            print(traceback.format_exc())
+        else:
+            print("There was an error.")
+            print("Run with --debug for traceback.")
