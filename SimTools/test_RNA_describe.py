@@ -2,6 +2,7 @@ import pytest
 from RNA_describe import RNA_describer
 from RNA_describe import ORF_counter
 from RNA_describe import ORF_probability
+from RNA_describe import ORF_RE
 
 # The following unix command will run all tests.
 # $ pytest
@@ -10,6 +11,15 @@ from RNA_describe import ORF_probability
 # By default, pytest captures stdout unless the tests fail.
 # Use this option to see the output of print() statements.
 # $ pytest --capture=tee-sys
+
+class Test_ORF_RE():
+    def test_get_all_orfs(self):
+        ore = ORF_RE()
+        rna = 'CCCATGAAATGACCTGATGCCCTGACCC'
+        orfs = ore.get_all_orfs(rna)
+        ans = ['ATGAAATGA', 'ATGACCTGA', 'ATGCCCTGA']
+        msg="Overlapping ORFs"
+        assert orfs==ans,msg
 
 class Test_ORF_probability():
     def range(self,number,low,high):

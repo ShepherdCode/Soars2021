@@ -1,8 +1,24 @@
 import traceback
 import argparse
+import re
 
 def assert_imported_RNA_describe():
     return True
+
+class ORF_RE():
+    '''Regular Expressions'''
+    def __init__(self):
+        canonical='ATG((?!TAA|TAG|TGA)[ACGT]{3})*(TAA|TAG|TGA)'
+        self.canonical_re=re.compile(canonical)
+    def get_all_orfs(self,RNA):
+        orfs=[]
+        pos=0
+        s=self.canonical_re.search(RNA)
+        while s is not None:
+            orfs.append(s.group(0))
+            pos = s.start()+1
+            s=self.canonical_re.search(RNA,pos)
+        return orfs
 
 class ORF_probability():
     def canonical_ORF(self,seq_len,min_orf_len):
