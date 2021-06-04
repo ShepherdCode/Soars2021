@@ -10,6 +10,24 @@ class ORF_RE():
     def __init__(self):
         canonical='ATG((?!TAA|TAG|TGA)[ACGT]{3})*(TAA|TAG|TGA)'
         self.canonical_re=re.compile(canonical)
+    def get_three_lengths(self,RNA):
+        '''Return length of 5'UTR, longest ORF, and 3'UTR.'''
+        utr5_len=0
+        orf_len=0
+        s=self.canonical_re.search(RNA)
+        while s is not None:
+            this_len=s.end()-s.start()-3 # exclude the stop codon
+            if this_len>orf_len:
+                orf_len=this_len
+                utr5_len=s.start()
+            pos = s.start()+1
+            s=self.canonical_re.search(RNA,pos)
+        if orf_len>0:
+            utr3_len=len(RNA)-utr5_len-(orf_len+3)
+        else: # no orf? then each UTR is half
+            utr5_len=len(RNA)//2
+            utr3_len=len(RNA)-utr5_len
+        return (utr5_len,orf_len,utr3_len)
     def get_all_orfs(self,RNA):
         orfs=[]
         pos=0

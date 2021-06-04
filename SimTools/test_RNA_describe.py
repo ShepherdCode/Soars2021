@@ -20,6 +20,13 @@ class Test_ORF_RE():
         ans = ['ATGAAATGA', 'ATGACCTGA', 'ATGCCCTGA']
         msg="Overlapping ORFs"
         assert orfs==ans,msg
+    def test_get_all_orfs(self):
+        ore = ORF_RE()
+        rna = 'ATGCCCTGA'+'ATGCCCCCCTAG'+'CC'
+        orfs = ore.get_three_lengths(rna)
+        ans = (9,9,2)
+        msg="Overlapping ORFs"
+        assert orfs==ans,msg
 
 class Test_ORF_probability():
     def range(self,number,low,high):
