@@ -1,12 +1,39 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# # ORF recognition by CNN
-# Compare to ORF_CNN_101.
-# Use 2-layer CNN.
-# Run on Mac.
+# # PC/NC classification by CNN
+# 
+# The convolutional neural network (CNN) was invented for image processing.
+# We can use Conv1D layers for processing string sequences. 
+# How well does CNN work on human RNA as a binary classifier of protein-coding/non-coding?  
+# 
+# 
+# 
+# 
+# Trying filters at 64.
+# 
+# Assume user downloaded files from GenCode 38 [FTP](http://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/release_38/)
+# to a subdirectory called data.
 
 # In[1]:
+
+
+import time 
+def show_time():
+    t = time.time()
+    s = time.strftime('%Y-%m-%d %H:%M:%S %Z', time.localtime(t))
+    print(s)
+show_time()
+
+
+# In[2]:
+
+
+PC_FILENAME='gencode.v38.pc_transcripts.fa.gz'
+NC_FILENAME='gencode.v38.lncRNA_transcripts.fa.gz'
+
+
+# In[3]:
 
 
 PC_SEQUENCES=20000   # how many protein-coding sequences
@@ -19,25 +46,28 @@ INPUT_SHAPE_2D = (BASES,ALPHABET,1) # Conv2D needs 3D inputs
 INPUT_SHAPE = (BASES,ALPHABET) # Conv1D needs 2D inputs
 FILTERS = 64   # how many different patterns the model looks for
 NEURONS = 16
+DROP_RATE = 0.2
 WIDTH = 3   # how wide each pattern is, in bases
 STRIDE_2D = (1,1)  # For Conv2D how far in each direction
 STRIDE = 1 # For Conv1D, how far between pattern matches, in bases
-EPOCHS=10  # how many times to train on all the data
+EPOCHS=5  # how many times to train on all the data
 SPLITS=5  # SPLITS=3 means train on 2/3 and validate on 1/3 
-FOLDS=5  # train the model this many times (range 1 to SPLITS)
+FOLDS=1  # train the model this many times (range 1 to SPLITS)
 
 
-# In[2]:
+# In[4]:
 
 
 import sys
+import csv
+
 try:
     from google.colab import drive
     IN_COLAB = True
     print("On Google CoLab, mount cloud-local file, get our code from GitHub.")
     PATH='/content/drive/'
     #drive.mount(PATH,force_remount=True)  # hardly ever need this
-    #drive.mount(PATH)    # Google will require login credentials
+    drive.mount(PATH)    # Google will require login credentials
     DATAPATH=PATH+'My Drive/data/'  # must end in "/"
     import requests
     r = requests.get('https://raw.githubusercontent.com/ShepherdCode/Soars2021/master/SimTools/RNA_gen.py')
@@ -55,7 +85,7 @@ try:
 except:
     print("CoLab not working. On my PC, use relative paths.")
     IN_COLAB = False
-    DATAPATH='data/'  # must end in "/"
+    DATAPATH='../data/'  # must end in "/"
     sys.path.append("..") # append parent dir in order to use sibling dirs
     from SimTools.RNA_gen import *
     from SimTools.RNA_describe import *
@@ -70,13 +100,12 @@ if not assert_imported_RNA_prep():
     print("ERROR: Cannot use RNA_prep.")
 
 
-# In[3]:
+# In[5]:
 
 
 from os import listdir
-import time # datetime
-import csv
-from zipfile import ZipFile
+#from zipfile import ZipFile
+import gzip
 
 import numpy as np
 import pandas as pd
@@ -87,7 +116,7 @@ from sklearn.model_selection import KFold
 from sklearn.model_selection import cross_val_score
 
 from keras.models import Sequential
-from keras.layers import Dense,Embedding
+from keras.layers import Dense,Embedding,Dropout
 from keras.layers import Conv1D,Conv2D
 from keras.layers import Flatten,MaxPooling1D,MaxPooling2D
 from keras.losses import BinaryCrossentropy
@@ -99,41 +128,107 @@ mycmap = colors.ListedColormap(['red','blue'])  # list color for label 0 then 1
 np.set_printoptions(precision=2)
 
 
-# In[4]:
-
-
-t = time.time()
-time.strftime('%Y-%m-%d %H:%M:%S %Z', time.localtime(t))
-
-
-# In[5]:
-
-
-# Use code from our SimTools library.
-def make_generators(seq_len):
-    pcgen = Collection_Generator()  
-    pcgen.get_len_oracle().set_mean(seq_len)
-    pcgen.set_seq_oracle(Transcript_Oracle())
-    ncgen = Collection_Generator()  
-    ncgen.get_len_oracle().set_mean(seq_len)
-    return pcgen,ncgen
-
-pc_sim,nc_sim = make_generators(BASES)
-pc_train = pc_sim.get_sequences(PC_SEQUENCES)
-nc_train = nc_sim.get_sequences(NC_SEQUENCES)
-print("Train on",len(pc_train),"PC seqs")
-print("Train on",len(nc_train),"NC seqs")
-
-
 # In[6]:
 
 
-# Use code from our LearnTools library.
-X,y = prepare_inputs_len_x_alphabet(pc_train,nc_train,ALPHABET) # shuffles
-print("Data ready.")
+def load_gencode(filename,label):
+    DEFLINE='>'
+    DELIM='|'
+    EMPTY=''
+    labels=[]  # usually 1 for protein-coding or 0 for non-coding
+    seqs=[]    # usually string of ACGT
+    lens=[]    # sequence length
+    ids=[]     # GenCode transcript ID, always starts ENST
+    one_seq = EMPTY
+    one_id = None
+    # Use gzip 'r' mode to open file in read-only mode.
+    # Use gzip 't' mode to read each line of text as type string.
+    with gzip.open (filename,'rt') as infile:
+        for line in infile:
+            if line[0]==DEFLINE:
+                # Save the previous sequence if one exists.
+                if not one_seq == EMPTY:
+                    labels.append(label)
+                    seqs.append(one_seq)
+                    lens.append(len(one_seq))
+                    ids.append(one_id)
+                # Get ready to read the next sequence. 
+                # Parse a GenCode defline that is formatted like this:
+                # >transcript_ID|gene_ID|other_fields other_info|other_info
+                one_id = line[1:].split(DELIM)[0]
+                one_seq = EMPTY
+            else:
+                # Continue loading sequence lines till next defline.
+                additional = line.rstrip()
+                one_seq = one_seq + additional
+        # Don't forget to save the last sequence after end-of-file.
+        if not one_seq == EMPTY:
+            labels.append(label)
+            seqs.append(one_seq)
+            lens.append(len(one_seq))
+            ids.append(one_id)
+
+    df1=pd.DataFrame(ids,columns=['tid'])
+    df2=pd.DataFrame(labels,columns=['class'])
+    df3=pd.DataFrame(seqs,columns=['sequence'])
+    df4=pd.DataFrame(lens,columns=['seqlen'])
+    df=pd.concat((df1,df2,df3,df4),axis=1)
+    return df
 
 
 # In[7]:
+
+
+PC_FULLPATH=DATAPATH+PC_FILENAME
+NC_FULLPATH=DATAPATH+NC_FILENAME
+pcdf=load_gencode(PC_FULLPATH,1)
+print("PC seqs loaded:",len(pcdf))
+ncdf=load_gencode(NC_FULLPATH,0)
+print("NC seqs loaded:",len(ncdf))
+
+
+# In[8]:
+
+
+def uniform_length(seqs,hardlen,too_big):
+    newseqs=[]
+    pad='T'*hardlen
+    too_small=200 ## by definition of long non-coding RNA
+    for seq in seqs:
+        size=len(seq)
+        if (size>too_small and size<too_big):
+            big=seq+pad
+            little=big[:hardlen]
+            newseqs.append(little)
+    return newseqs
+
+
+# In[9]:
+
+
+from sklearn.model_selection import train_test_split
+pc_all = pcdf['sequence']
+nc_all = ncdf['sequence']
+# The split function also shuffles
+pc_train,pc_test=train_test_split(pc_all,test_size=0.10,random_state=1234)
+nc_train,nc_test=train_test_split(nc_all,test_size=0.10,random_state=1234)
+
+
+# In[10]:
+
+
+# Use code from our SimTools library.
+UNIFORM_LENGTH=1000
+MAXIMUM_LENGTH=2000
+pc_seqs=uniform_length(pc_train,UNIFORM_LENGTH,MAXIMUM_LENGTH-500)
+print("PC seqs ready:",len(pc_seqs))
+nc_seqs=uniform_length(nc_train,UNIFORM_LENGTH,MAXIMUM_LENGTH+2000)
+print("NC seqs ready:",len(nc_seqs))
+X,y = prepare_inputs_len_x_alphabet(pc_seqs,nc_seqs,ALPHABET) # shuffles
+print("Data ready")
+
+
+# In[11]:
 
 
 def make_DNN():
@@ -145,8 +240,12 @@ def make_DNN():
             input_shape=INPUT_SHAPE))
     dnn.add(Conv1D(filters=FILTERS,kernel_size=WIDTH,strides=STRIDE,padding="same"))
     dnn.add(MaxPooling1D())
+    dnn.add(Conv1D(filters=FILTERS,kernel_size=WIDTH,strides=STRIDE,padding="same"))
+    dnn.add(Conv1D(filters=FILTERS,kernel_size=WIDTH,strides=STRIDE,padding="same"))
+    dnn.add(MaxPooling1D())
     dnn.add(Flatten())
     dnn.add(Dense(NEURONS,activation="sigmoid",dtype=np.float32))   
+    dnn.add(Dropout(DROP_RATE))
     dnn.add(Dense(1,activation="sigmoid",dtype=np.float32))   
     dnn.compile(optimizer='adam',
                 loss=BinaryCrossentropy(from_logits=False),
@@ -160,10 +259,11 @@ model = make_DNN()
 print(model.summary())
 
 
-# In[8]:
+# In[12]:
 
 
 from keras.callbacks import ModelCheckpoint
+
 def do_cross_validation(X,y):
     cv_scores = []
     fold=0
@@ -198,51 +298,15 @@ def do_cross_validation(X,y):
             plt.show()
 
 
-# In[9]:
+# In[13]:
 
 
+show_time()
 do_cross_validation(X,y)
+show_time()
 
 
-# In[10]:
-
-
-from keras.models import load_model
-pc_test = pc_sim.get_sequences(PC_TESTS)
-nc_test = nc_sim.get_sequences(NC_TESTS)
-X,y = prepare_inputs_len_x_alphabet(pc_test,nc_test,ALPHABET)
-best_model=load_model(MODELPATH)
-scores = best_model.evaluate(X, y, verbose=0)
-print("The best model parameters were saved during cross-validation.")
-print("Best was defined as maximum validation accuracy at end of any epoch.")
-print("Now re-load the best model and test it on previously unseen data.")
-print("Test on",len(pc_test),"PC seqs")
-print("Test on",len(nc_test),"NC seqs")
-print("%s: %.2f%%" % (best_model.metrics_names[1], scores[1]*100))
-
-
-# In[11]:
-
-
-from sklearn.metrics import roc_curve
-from sklearn.metrics import roc_auc_score
-ns_probs = [0 for _ in range(len(y))]
-bm_probs = best_model.predict(X)
-ns_auc = roc_auc_score(y, ns_probs)
-bm_auc = roc_auc_score(y, bm_probs)
-ns_fpr, ns_tpr, _ = roc_curve(y, ns_probs)
-bm_fpr, bm_tpr, _ = roc_curve(y, bm_probs)
-plt.plot(ns_fpr, ns_tpr, linestyle='--', label='Guess, auc=%.4f'%ns_auc)
-plt.plot(bm_fpr, bm_tpr, marker='.', label='Model, auc=%.4f'%bm_auc)
-plt.title('ROC')
-plt.xlabel('False Positive Rate')
-plt.ylabel('True Positive Rate')
-plt.legend()
-plt.show()
-print("%s: %.2f%%" %('AUC',bm_auc))
-
-
-# In[11]:
+# In[13]:
 
 
 

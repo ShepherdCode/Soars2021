@@ -48,7 +48,7 @@ try:
     with open('RNA_describe.py', 'w') as f:
         f.write(r.text)  
     from RNA_describe import *
-    r = requests.get('https://raw.githubusercontent.com/ShepherdCode/Soars2021/master/LearnTools/RNA_prep.py')
+    r = requests.get('https://raw.githubusercontent.com/ShepherdCode/Soars2021/master/SimTools/RNA_prep.py')
     with open('RNA_prep.py', 'w') as f:
         f.write(r.text)  
     from RNA_prep import *
@@ -59,7 +59,7 @@ except:
     sys.path.append("..") # append parent dir in order to use sibling dirs
     from SimTools.RNA_gen import *
     from SimTools.RNA_describe import *
-    from LearnTools.RNA_prep import *
+    from SimTools.RNA_prep import *
 
 MODELPATH="BestModel"  # saved on cloud instance and lost after logout
 #MODELPATH=DATAPATH+MODELPATH  # saved on Google Drive but requires login

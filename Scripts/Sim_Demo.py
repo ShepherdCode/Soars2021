@@ -24,7 +24,7 @@ try:
     s = requests.get('https://raw.githubusercontent.com/ShepherdCode/Soars2021/master/SimTools/RNA_describe.py')
     with open('RNA_describe.py', 'w') as f:
         f.write(s.text)  # writes to cloud local, delete the file later?
-    from RNA_prep import *
+    from RNA_describe import *
 except:
     print("CoLab not working. On my PC, use relative paths.")
     IN_COLAB = False
@@ -87,11 +87,11 @@ simulator = Collection_Generator()
 
 # ## Random uniform sequence
 
-# In[5]:
+# In[9]:
 
 
 # Run this repeatedly to get different random sequences.
-SEQ_LEN=1000
+SEQ_LEN=10000
 SEQ_CNT=5000
 simulator.get_len_oracle().set_mean(SEQ_LEN)
 simulator.get_seq_oracle().set_sequences(['A','C','G','T'])  # default
