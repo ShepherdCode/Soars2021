@@ -39,11 +39,20 @@ class ORF_RE():
         return orfs
 
 class ORF_probability():
-    def canonical_ORF(self,seq_len,min_orf_len):
+    def canonical_exact(self,orf_len):
         prob=0.0
         pStop = 3/64 # prob of stop codon
-        pStart = 1/64 # prob of stop codon
-        print()
+        pStart = 1/64 # prob of start codon
+        pNonStop = 61/64 # prob of non-stop codon
+        if orf_len%3==0:
+            if orf_len>=3:
+                prob=pStart*pStop
+                if orf_len>3:
+                    codons=(orf_len-6)//3
+                    pns=pNonStop**codons
+                    prob=prob*pns
+        return prob
+    def canonical(self):
         for stop_pos in range(min_orf_len,seq_len-3+1):
             print("stop pos=",stop_pos)
             for start_pos in range(stop_pos-3,-1,-3):
