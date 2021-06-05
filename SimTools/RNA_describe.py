@@ -38,36 +38,6 @@ class ORF_RE():
             s=self.canonical_re.search(RNA,pos)
         return orfs
 
-class ORF_probability():
-    def canonical_exact(self,orf_len):
-        prob=0.0
-        pStop = 3/64 # prob of stop codon
-        pStart = 1/64 # prob of start codon
-        pNonStop = 61/64 # prob of non-stop codon
-        if orf_len%3==0:
-            if orf_len>=3:
-                prob=pStart*pStop
-                if orf_len>3:
-                    codons=(orf_len-6)//3
-                    pns=pNonStop**codons
-                    prob=prob*pns
-        return prob
-    def canonical(self):
-        for stop_pos in range(min_orf_len,seq_len-3+1):
-            print("stop pos=",stop_pos)
-            for start_pos in range(stop_pos-3,-1,-3):
-                print("start pos=",stop_pos)
-                orf_len=stop_pos-start_pos
-                if (orf_len >= min_orf_len):
-                    p1=pStart*pStop
-                    prob += p1
-        print(prob)
-        return prob
-    def start_codon(self,given_length):
-        return 0.0
-    def no_stop_codon(self,given_length):
-        return (3/64)**given_length
-
 class ORF_counter():
     '''Assume RNA composed of ACGT upper case no N.'''
     def __init__(self,debug=False):
