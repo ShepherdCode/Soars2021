@@ -4,29 +4,30 @@ import RNA_describe
 import re
 
 class ORF_probability():
-    def canonical_exact(self,orf_len):
+    def canonical_exact(self,rna_bases):
         prob=0.0
-        pStop = 3/64 # prob of stop codon
-        pStart = 1/64 # prob of start codon
-        pNonStop = 61/64 # prob of non-stop codon
-        if orf_len%3==0:
-            if orf_len>=3:
-                prob=pStart*pStop
-                if orf_len>3:
-                    codons=(orf_len-6)//3
-                    pns=pNonStop**codons
-                    prob=prob*pns
+        if rna_bases%3==0 and rna_bases>=6:
+            prob = 1/64 * 3/64 # start and stop codons
+            pResidue = 61/64 # prob of non-stop codon
+            if rna_bases>6:
+                codons=(rna_bases-6)//3
+                pns=pResidue**codons
+                prob=prob*pns
         return prob
-    def canonical(self):
-        for stop_pos in range(min_orf_len,seq_len-3+1):
-            print("stop pos=",stop_pos)
-            for start_pos in range(stop_pos-3,-1,-3):
-                print("start pos=",stop_pos)
-                orf_len=stop_pos-start_pos
-                if (orf_len >= min_orf_len):
-                    p1=pStart*pStop
-                    prob += p1
-        print(prob)
+    def canonical_range(self,min_orf_len,rna_len):
+        prob=0.0
+        sum=0.0
+        if rna_len>=min_orf_len+3:
+            prob = 1/64 * 3/64 # start and stop codons
+            pResidue = 61/64 # prob of non-stop codon
+            n=(rna_len-3)//3
+            m=min_orf_len//3
+            print("m,n=",m,n)
+            for i in range(m,n+1):
+                placements=n-i+1
+                pns=pResidue**(i-1)
+                sum = sum+placements*pns
+        prob = prob * sum
         return prob
     def start_codon(self,given_length):
         return 0.0
