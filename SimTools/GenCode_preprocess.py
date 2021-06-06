@@ -1,3 +1,4 @@
+import sys
 import traceback
 import argparse
 import re
@@ -8,8 +9,38 @@ def assert_imported_GenCode_preprocess():
 class GenCode_Preprocess():
     def __init__(self,debug=False):
         self.debug=debug
-    def get_prot_incl(self,gff_fn):
+        self.prot_incl_tids=[]
+        self.filename='GenCode_Protein_Include.py'
+    def get_filename(self):
+        return self.filename
+    def get_prot_incl(self):
+        return self.prot_incl_tids
+    def write_prot_incl_text(self):
+        '''One transcript ID per line to stdout.'''
+        incl=self.prot_incl_tids
+        print(*incl,sep='\n')
+    def write_prot_incl_python(self):
+        '''Write executable python.'''
+        with open (self.filename,'w') as outf:
+            print("prot_incl",end="=",file=outf)
+            print(self.prot_incl_tids,file=outf)
+    def read_prot_incl(self,txt_fn):
         prot_incl_tids=[]
+        with open (text_fn,'r') as inf:
+            for line in inf:
+                tid=line.rstrip()
+                prot_incl_tids.append(tid)
+        self.prot_incl_tids=prot_incl_tids
+    def compute_prot_incl(self,gff_fn):
+        prot_incl_tids=[]
+        '''Regular expression.
+        Reqires line start with 'chr' to include 'chr22'
+        but exclude comment lines etc.
+        Requires line not start with 'chrM' to exclude
+        mitochondrial genes which use nonstandard codons.
+        Requires third field must equal 'transcript'
+        in order to exclude 'gene', 'exon' etc.
+        '''
         transcript_prefix=re.compile('^chr[^M]+\s.+\stranscript\s')
         EMPTY=''
         with open(gff_fn,'r') as inf:
@@ -32,14 +63,16 @@ class GenCode_Preprocess():
                             rejection="No start codon"
                         if "cds_end_NF" in pair:
                             rejection="No stop codon"
+                        if "non_ATG_start" in pair:
+                            rejection="Noncanonical start codon"
                 if rejection != EMPTY:
                     continue  # do not output this one
                 if tid == EMPTY:
                     print("DEATH!")
                     break # this should never happen
                 prot_incl_tids.append(tid)
-                print(line.rstrip()) # debug only
-        return prot_incl_tids
+                #print(line.rstrip()) # debug only
+        self.prot_incl_tids=prot_incl_tids
 
 def args_parse():
     '''GenCode preprocess.'''
@@ -62,7 +95,10 @@ if __name__ == "__main__":
         gff=args.gff
         debug=args.debug
         tool = GenCode_Preprocess(debug)
-        incl=tool.get_prot_incl(gff)
+        sys.stderr.write("Will write to "+tool.get_filename()+"\n")
+        tool.compute_prot_incl(gff)
+        incl=tool.get_prot_incl()
+        tool.write_prot_incl_python()
     except Exception:
         print()
         if args.debug:
