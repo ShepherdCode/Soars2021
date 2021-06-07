@@ -2,6 +2,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
+#TODO: Decide what data format (list, numpy, pandas) to use with Professor Miller
 class Plot_Generator:
 	"""
 	Class for generating plots.
@@ -87,7 +88,7 @@ class Plot_Generator:
 
 		plt.show()
 
-	def comparision_box_plot(self, data_a, data_b, data_a_name, data_b_name, show_fliers):
+	def comparision_box_plot(self, data_a, data_b, data_a_name, data_b_name, showfliers):
 		"""
 		Generates a box plot comparing two data sets.
 		"""
@@ -105,19 +106,9 @@ class Plot_Generator:
 
 		plt.figure()
 
-		box_a = plt.boxplot(data_a, patch_artist=True, positions=a_positions, showfliers=show_fliers)
-		for box in box_a['boxes']:
-			box.set(color='red', linewidth=1)
-			box.set(facecolor='white')
-		for flier in box_a['fliers']:
-			flier.set(markersize=0.5, alpha=0.5)
+		box_a = self.gen_box_plot_object(data_a, 'red', a_positions, showfliers)
 
-		box_b = plt.boxplot(data_b, patch_artist=True, positions=b_positions, showfliers=show_fliers)
-		for box in box_b['boxes']:
-			box.set(color='blue', linewidth=1)
-			box.set(facecolor='white')
-		for flier in box_b['fliers']:
-			flier.set(markersize=0.5, alpha=0.5)
+		box_b = self.gen_box_plot_object(data_b, 'blue', b_positions, showfliers)
 
 		if self.y_scale != None: #Needed because matplotlib does not like setting the base for linear plots
 			plt.yscale(self.y_scale, base=self.y_base)
@@ -138,6 +129,15 @@ class Plot_Generator:
 
 		plt.show()
 
+	def gen_box_plot_object(self, data, color, positions, showfliers):
+		box_plot = plt.boxplot(data, patch_artist=True, positions=positions, showfliers=showfliers)
+		for box in box_plot['boxes']:
+			box.set(color=color, linewidth=1)
+			box.set(facecolor='white')
+		for flier in box_plot['fliers']:
+			flier.set(markersize=0.5, alpha=0.5)
+		return box_plot
+
 #Example plots using Plot_Generator
 if __name__ == '__main__':
 	#Create some fake data
@@ -154,7 +154,7 @@ if __name__ == '__main__':
 		box_plot_data_b.append([])
 		for j in range(0, 10):
 			box_plot_data_a[i].append((i+1) * (j+1))
-			box_plot_data_b[i].append((i+1) / (j+1))
+			box_plot_data_b[i].append((i+1) + (j+1))
 
 	#Set up the plot generator
 	pg = Plot_Generator()
