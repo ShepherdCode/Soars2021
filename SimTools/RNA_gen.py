@@ -57,17 +57,13 @@ class Transcript_Oracle(Sequence_Oracle):
     '''Return a sequence containing an ORF.
     The ORF is centered along the transcript.
     The start is always ATG but the stop is randomly chosen.
-    The codons are uniform random but without stops.'''
-    # TO DO: adjust semantics of ORF length.
-    # This code assumes STOP is counted in ORF length.
-    # Usually STOP is counted in CDS length but not ORF length.
+    The codons are uniform random but without stops.
+    Convention: CDS = ORF+STOP,
+    so STOP is counted in CDS length but not ORF length.'''
     def __init__(self,debug=False):
         super().__init__()
         self.debug = debug
-        self.orf_len=None # by default, use portion of transcript
-        self.orf_portion=2  # ORF len = transcript len / 2
-        self.utr5_portion=2 # UTR5 len = total UTR / 2
-        self.min_orf_len=9  # START+CODON+STOP
+        self.min_cds_len=9  # START+CODON+STOP
         self.var=1/6  # orf len stddev/mean
         self.codon_size=3
         self.START = 'ATG'
@@ -76,7 +72,7 @@ class Transcript_Oracle(Sequence_Oracle):
         codons = Transcript_Oracle.remove_stops(codons,self.STOPS)
         freqs = [1]*len(codons)
         # subclasses could use change these
-        self.orflen_oracle = Length_Oracle()
+        self.cdslen_oracle = Length_Oracle()
         self.codons_oracle = Sequence_Oracle()
         self.codons_oracle.set_sequences(codons)
         self.codons_oracle.set_frequencies(freqs)
@@ -93,41 +89,43 @@ class Transcript_Oracle(Sequence_Oracle):
         for stop in stops:
             codons.remove(stop)
         return codons
-    def set_orf_len_mean(self,value):
-        self.orf_len=value
+    def set_orf_len_mean(self,value): # deprecated
+        self.set_cds_len_mean(value+3)
+    def set_cds_len_mean(self,value):
+        self.cds_len=value
     def get_sequence(self,length):
-        '''Generates 5'UTR + ORF + 3'UTR.
+        '''Generates 5'UTR + CDS + 3'UTR.
         Both UTR contain random sequence.
-        ORF structure is START+CODON(S)+STOP.'''
-        orf = self.__get_orf(length)
-        utr5,utr3 = self.__get_utr(length,len(orf))
+        CDS structure is START+CODONS+STOP.'''
+        cds = self.__get_cds(length)
+        utr5,utr3 = self.__get_utr(length,len(cds))
         if self.debug:
-            orf = orf.lower()  # for visual debugging
-        return utr5 + orf + utr3
-    def __get_orf(self,tlen):
-        if self.orf_len is None:
-            orflen_target = tlen//self.orf_portion
+            cds = cds.lower()  # for visual debugging
+        return utr5 + cds + utr3
+    def __get_cds(self,tlen):
+        if self.cds_len is None:
+            cdslen_target = tlen//2 # arbitrary default
         else:
-            orflen_target = self.orf_len # user settable
-        self.orflen_oracle.set_mean(orflen_target)
-        self.orflen_oracle.set_stddev(orflen_target*self.var)
-        orflen_actual = self.orflen_oracle.get_length()
-        orflen_actual = min(tlen,orflen_actual)
-        orflen_actual -= orflen_actual%self.codon_size
-        if orflen_actual<self.min_orf_len:
+            cdslen_target = self.cds_len # user settable
+        self.cdslen_oracle.set_mean(cdslen_target)
+        self.cdslen_oracle.set_stddev(cdslen_target*self.var)
+        cdslen_actual = self.cdslen_oracle.get_length()
+        cdslen_actual = min(tlen,cdslen_actual)
+        cdslen_actual -= cdslen_actual%self.codon_size
+        if cdslen_actual<self.min_cds_len:
             # Too short. Just return random sequence.
             return super().get_sequence(tlen)
-        num_codons = orflen_actual//self.codon_size
+        num_codons = cdslen_actual//self.codon_size
         num_codons -= 2 # START and STOP are automatic
-        orf = self.START
-        orf += self.codons_oracle.get_sequence(num_codons)
-        orf += random.choice(self.STOPS)
-        return orf
-    def __get_utr(self,tlen,orflen):
+        cds = self.START
+        cds += self.codons_oracle.get_sequence(num_codons)
+        cds += random.choice(self.STOPS)
+        return cds
+    def __get_utr(self,tlen,cdslen):
         utr5 = ''
         utr3 = ''
-        utr5_len = (tlen-orflen)//self.utr5_portion
-        utr3_len = tlen - orflen - utr5_len
+        utr5_len = (tlen-cdslen)//2 # arbitrary default
+        utr3_len = tlen - cdslen - utr5_len
         if utr5_len > 0:
             utr5 = super().get_sequence(utr5_len)
         if utr3_len > 0:
