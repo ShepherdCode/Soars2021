@@ -58,6 +58,9 @@ class Transcript_Oracle(Sequence_Oracle):
     The ORF is centered along the transcript.
     The start is always ATG but the stop is randomly chosen.
     The codons are uniform random but without stops.'''
+    # TO DO: adjust semantics of ORF length.
+    # This code assumes STOP is counted in ORF length.
+    # Usually STOP is counted in CDS length but not ORF length.
     def __init__(self,debug=False):
         super().__init__()
         self.debug = debug
@@ -113,7 +116,7 @@ class Transcript_Oracle(Sequence_Oracle):
         orflen_actual -= orflen_actual%self.codon_size
         if orflen_actual<self.min_orf_len:
             # Too short. Just return random sequence.
-            return super.get_sequence(tlen)
+            return super().get_sequence(tlen)
         num_codons = orflen_actual//self.codon_size
         num_codons -= 2 # START and STOP are automatic
         orf = self.START
