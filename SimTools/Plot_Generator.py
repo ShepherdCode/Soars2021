@@ -71,8 +71,8 @@ class Plot_Generator:
 
 		plt.figure()
 
-		bar_a = plt.bar(x - 0.25, data_a, color='r', width=0.5)
-		bar_b = plt.bar(x + 0.25, data_b, color='b', width=0.5)
+		bar_a = self.gen_bar_plot_object(data_a, 'r', 0, 2)
+		bar_b = self.gen_bar_plot_object(data_b, 'b', 1, 2)
 
 		if self.y_scale != None: #Needed because matplotlib does not like setting the base for linear plots
 			plt.yscale(self.y_scale, base=self.y_base)
@@ -87,6 +87,19 @@ class Plot_Generator:
 		plt.legend([data_a_name, data_b_name])
 
 		plt.show()
+
+	def gen_bar_plot_object(self, data, color, plot_num, num_plots):
+		x = np.arange(0, len(data), 1)
+
+		width = 1 / num_plots
+		offset = width * plot_num - width / num_plots
+		if num_plots % 2 != 0:
+			offset = width * plot_num - width
+			
+		bar_plot = plt.bar(x + offset, data, color=color, width=width)
+		return bar_plot
+
+
 
 	def comparision_box_plot(self, data_a, data_b, data_a_name, data_b_name, showfliers):
 		"""
@@ -119,8 +132,8 @@ class Plot_Generator:
 
 		plt.show()
 
-	def gen_box_plot_object(self, data, color, positions_offset, positions_scale, showfliers):
-		positions = np.arange(positions_offset, len(data) * positions_scale, positions_scale)
+	def gen_box_plot_object(self, data, color, plot_num, num_plots, showfliers):
+		positions = np.arange(plot_num, len(data) * num_plots, num_plots)
 		box_plot = plt.boxplot(data, patch_artist=True, positions=positions, showfliers=showfliers)
 		for box in box_plot['boxes']:
 			box.set(color=color, linewidth=1)
