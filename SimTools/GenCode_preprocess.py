@@ -9,30 +9,19 @@ def assert_imported_GenCode_preprocess():
 class GenCode_Preprocess():
     def __init__(self,debug=False):
         self.debug=debug
-        self.prot_incl_tids=[]
+        self.prot_incl_tids={}
         self.filename='GenCode_Protein_Include.py'
     def get_filename(self):
         return self.filename
     def get_prot_incl(self):
         return self.prot_incl_tids
-    def write_prot_incl_text(self):
-        '''One transcript ID per line to stdout.'''
-        incl=self.prot_incl_tids
-        print(*incl,sep='\n')
     def write_prot_incl_python(self):
         '''Write executable python.'''
         with open (self.filename,'w') as outf:
             print("prot_incl",end="=",file=outf)
             print(self.prot_incl_tids,file=outf)
-    def read_prot_incl(self,txt_fn):
-        prot_incl_tids=[]
-        with open (text_fn,'r') as inf:
-            for line in inf:
-                tid=line.rstrip()
-                prot_incl_tids.append(tid)
-        self.prot_incl_tids=prot_incl_tids
     def compute_prot_incl(self,gff_fn):
-        prot_incl_tids=[]
+        prot_incl_tids={}
         '''Regular expression.
         Reqires line start with 'chr' to include 'chr22'
         but exclude comment lines etc.
@@ -70,7 +59,7 @@ class GenCode_Preprocess():
                 if tid == EMPTY:
                     print("DEATH!")
                     break # this should never happen
-                prot_incl_tids.append(tid)
+                prot_incl_tids[tid]=1
                 #print(line.rstrip()) # debug only
         self.prot_incl_tids=prot_incl_tids
 
