@@ -94,21 +94,10 @@ class Plot_Generator:
 		"""
 		assert len(data_a) == len(data_b)
 
-		a_positions = []
-		b_positions = []
-		x_ticks = []
-		for i in range(0, len(data_a) + len(data_b)):
-			x_ticks.append(i)
-		for i in range(0, len(data_a)):
-			a_positions.append(i*2)
-		for i in range(0, len(data_b)):
-			b_positions.append(i*2+1)
-
 		plt.figure()
 
-		box_a = self.gen_box_plot_object(data_a, 'red', a_positions, showfliers)
-
-		box_b = self.gen_box_plot_object(data_b, 'blue', b_positions, showfliers)
+		box_a = self.gen_box_plot_object(data_a, 'red', 0, 2, showfliers)
+		box_b = self.gen_box_plot_object(data_b, 'blue', 1, 2, showfliers)
 
 		if self.y_scale != None: #Needed because matplotlib does not like setting the base for linear plots
 			plt.yscale(self.y_scale, base=self.y_base)
@@ -123,13 +112,15 @@ class Plot_Generator:
 				new_x_tick_labels.append(label + " (" + data_a_name + ")")
 				new_x_tick_labels.append(label + " (" + data_b_name + ")")
 
+			x_ticks = np.arange(0, len(data_a) + len(data_b), 1)	
 			plt.xticks(x_ticks, labels=new_x_tick_labels, rotation=self.x_tick_label_rotation, ha=self.x_tick_label_horizontal_alignment)
 
 		plt.legend([box_a['boxes'][0], box_b['boxes'][0]], [data_a_name, data_b_name])
 
 		plt.show()
 
-	def gen_box_plot_object(self, data, color, positions, showfliers):
+	def gen_box_plot_object(self, data, color, positions_offset, positions_scale, showfliers):
+		positions = np.arange(positions_offset, len(data) * positions_scale, positions_scale)
 		box_plot = plt.boxplot(data, patch_artist=True, positions=positions, showfliers=showfliers)
 		for box in box_plot['boxes']:
 			box.set(color=color, linewidth=1)
