@@ -52,9 +52,9 @@ class Plot_Generator:
 		"""
 		Set the axis options of the plots.
 		Changing the bases does nothing if the scale is None or 'linear'.
-		x scale and x base not currently implemented.
+		Note: not all plots can change scales.
 		"""
-		if x_scale == 'linear':
+		if x_scale != 'linear':
 			self.x_scale = None
 		else:
 			self.x_scale = x_scale
@@ -167,6 +167,9 @@ class Plot_Generator:
 
 		plt.hist(data, bins)
 
+		if self.y_scale != None: #Needed because matplotlib does not like setting the base for linear plots
+			plt.yscale(self.y_scale, basey=self.y_base)
+
 		plt.title(self.title)
 		plt.xlabel(self.x_label)
 		plt.ylabel(self.y_label)
@@ -182,12 +185,14 @@ class Plot_Generator:
 
 		plt.scatter(data_x, data_y)
 
+		if self.y_scale != None: #Needed because matplotlib does not like setting the base for linear plots
+			plt.yscale(self.y_scale, basey=self.y_base)
+
 		plt.title(self.title)
 		plt.xlabel(self.x_label)
 		plt.ylabel(self.y_label)
 
 		plt.show()
-
 
 #Example plots using Plot_Generator
 if __name__ == '__main__':
@@ -226,7 +231,9 @@ if __name__ == '__main__':
 	pg.box_plot([box_plot_data_a, box_plot_data_b], ['A', 'B'], False)
 
 	#Plot the histogram data
+	pg.set_axis_options('log', 10, 'log', 10)
 	pg.histogram(histogram_data, 20)
 
 	#Plot the scatter plot data
+	pg.set_axis_options('log', 2, 'log', 2)
 	pg.scatter_plot(scatter_plot_data_x, scatter_plot_data_y)
