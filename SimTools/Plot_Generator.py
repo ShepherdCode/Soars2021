@@ -157,13 +157,28 @@ class Plot_Generator:
 		return box_plot
 
 	def histogram(self, data, bins):
-	"""
-	Generates a histogram.
-	TODO: improve.
-	"""
+		"""
+		Generates a histogram.
+		TODO: improve.
+		"""
 		plt.figure()
 
 		plt.hist(data, bins)
+
+		plt.title(self.title)
+		plt.xlabel(self.x_label)
+		plt.ylabel(self.y_label)
+
+		plt.show()
+
+	def scatter_plot(self, data_x, data_y):
+		"""
+		Generates a scatter plot.
+		TODO: improve.
+		"""
+		plt.figure()
+
+		plt.scatter(data_x, data_y)
 
 		plt.title(self.title)
 		plt.xlabel(self.x_label)
@@ -192,6 +207,9 @@ if __name__ == '__main__':
 
 	histogram_data = np.random.randn(10000)
 
+	scatter_plot_data_x = np.random.randn(10000)
+	scatter_plot_data_y = np.random.randn(10000)
+
 	#Set up the plot generator
 	pg = Plot_Generator()
 	pg.set_text_options(45, 'right', 0, 'center')
@@ -207,3 +225,6 @@ if __name__ == '__main__':
 
 	#Plot the histogram data
 	pg.histogram(histogram_data, 20)
+
+	#Plot the scatter plot data
+	pg.scatter_plot(scatter_plot_data_x, scatter_plot_data_y)
