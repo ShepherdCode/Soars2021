@@ -30,7 +30,8 @@ class Plot_Generator:
 		self.COLORS = ['tab:blue', 'tab:orange', 'tab:green', 'tab:red', 'tab:purple', 'tab:brown', 'tab:pink', 'tab:gray', 'tab:olive', 'tab:cyan']
 
 	def set_text(self, title, x_label, y_label, x_tick_labels, y_tick_labels):
-		"""Sets the text of plots.
+		"""
+		Sets the text of plots.
 		"""
 		self.title = title
 		self.x_label = x_label
@@ -51,6 +52,7 @@ class Plot_Generator:
 		"""
 		Set the axis options of the plots.
 		Changing the bases does nothing if the scale is None or 'linear'.
+		x scale and x base not currently implemented.
 		"""
 		if x_scale == 'linear':
 			self.x_scale = None
@@ -82,7 +84,7 @@ class Plot_Generator:
 			self.gen_bar_plot_object(data_sets[i], self.COLORS[i] , i, NUM_SETS)
 
 		if self.y_scale != None: #Needed because matplotlib does not like setting the base for linear plots
-			plt.yscale(self.y_scale, base=self.y_base)
+			plt.yscale(self.y_scale, basey=self.y_base)
 
 		plt.title(self.title)
 		plt.xlabel(self.x_label)
@@ -124,7 +126,7 @@ class Plot_Generator:
 			boxes.append(self.gen_box_plot_object(data_sets[i], self.COLORS[i], i, NUM_SETS, showfliers))
 
 		if self.y_scale != None: #Needed because matplotlib does not like setting the base for linear plots
-			plt.yscale(self.y_scale, base=self.y_base)
+			plt.yscale(self.y_scale, basey=self.y_base)
 
 		plt.title(self.title)
 		plt.xlabel(self.x_label)
