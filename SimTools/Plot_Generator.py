@@ -106,18 +106,22 @@ class Plot_Generator:
 		bar_plot = plt.bar(x + offset, data, color=color, width=width)
 		return bar_plot
 
-
-
-	def comparision_box_plot(self, data_a, data_b, data_a_name, data_b_name, showfliers):
+	def box_plot(self, data_sets, data_set_names, showfliers):
 		"""
-		Generates a box plot comparing two data sets.
+		Generates a box plot of one or many data sets.
 		"""
-		assert len(data_a) == len(data_b)
+		assert len(data_sets) == len(data_set_names)
+		assert len(data_sets) <= len(self.COLORS)
+		for i in range(1, len(data_sets)):
+			assert len(data_sets[i]) == len(data_sets[i - 1])
+
+		NUM_SETS = len(data_sets)
 
 		plt.figure()
 
-		box_a = self.gen_box_plot_object(data_a, 'red', 0, 2, showfliers)
-		box_b = self.gen_box_plot_object(data_b, 'blue', 1, 2, showfliers)
+		boxes = []
+		for i in range(0, NUM_SETS):
+			boxes.append(self.gen_box_plot_object(data_sets[i], self.COLORS[i], i, NUM_SETS, showfliers))
 
 		if self.y_scale != None: #Needed because matplotlib does not like setting the base for linear plots
 			plt.yscale(self.y_scale, base=self.y_base)
@@ -129,13 +133,16 @@ class Plot_Generator:
 			#Generate x tick labels
 			new_x_tick_labels = []
 			for label in self.x_tick_labels:
-				new_x_tick_labels.append(label + " (" + data_a_name + ")")
-				new_x_tick_labels.append(label + " (" + data_b_name + ")")
+				for name in data_set_names:
+					new_x_tick_labels.append(label + " (" + name + ")")
 
-			x_ticks = np.arange(0, len(data_a) + len(data_b), 1)	
+			x_ticks = np.arange(0, NUM_SETS * len(data_sets[0]), 1)
 			plt.xticks(x_ticks, labels=new_x_tick_labels, rotation=self.x_tick_label_rotation, ha=self.x_tick_label_horizontal_alignment)
 
-		plt.legend([box_a['boxes'][0], box_b['boxes'][0]], [data_a_name, data_b_name])
+		for_legend = []
+		for box in boxes:
+			for_legend.append(box['boxes'][0])
+		plt.legend(for_legend, data_set_names)
 
 		plt.show()
 
@@ -178,4 +185,4 @@ if __name__ == '__main__':
 	#Plot the box plot data
 	#Note the x tick labels. 
 	#It will automatically generate this using the previously set x tick labels and given data_a_name and data_b_name values
-	pg.comparision_box_plot(box_plot_data_a, box_plot_data_b, 'A', 'B', False)
+	pg.box_plot([box_plot_data_a, box_plot_data_b], ['A', 'B'], False)
