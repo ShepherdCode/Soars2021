@@ -194,6 +194,32 @@ class Plot_Generator:
 
 		plt.show()
 
+	def heatmap(self, data_sets):
+		"""
+		Generates a heatmap.
+		"""
+		if len(data_sets) > 1:
+			for i in range(1, len(data_sets)):
+				assert len(data_sets[i]) == len(data_sets[i - 1])
+
+		plt.figure()
+
+		plt.imshow(data_sets, cmap='hot', interpolation='nearest')
+
+		plt.title(self.title)
+		plt.xlabel(self.x_label)
+		plt.ylabel(self.y_label)
+
+		if self.x_tick_labels != None:
+			assert len(self.x_tick_labels) == len(data_sets[0])
+			plt.xticks(np.arange(len(data_sets[0])), self.x_tick_labels, rotation=self.x_tick_label_rotation, ha=self.x_tick_label_horizontal_alignment)
+		if self.y_tick_labels != None:
+			assert len(self.y_tick_labels) == len(data_sets)
+			plt.yticks(np.arange(len(y_tick_labels)), self.y_tick_labels, rotation=self.y_tick_label_rotation, ha=self.y_tick_label_horizontal_alignment)
+
+		plt.show()
+
+
 #Example plots using Plot_Generator
 if __name__ == '__main__':
 	#Create some fake data
@@ -217,6 +243,12 @@ if __name__ == '__main__':
 	scatter_plot_data_x = np.random.randn(10000)
 	scatter_plot_data_y = np.random.randn(10000)
 
+	heatmap_data = []
+	for i in range(0, 10):
+		heatmap_data.append([])
+		for j in range(0, 10):
+			heatmap_data[i].append(i * j)
+
 	#Set up the plot generator
 	pg = Plot_Generator()
 	pg.set_text_options(45, 'right', 0, 'center')
@@ -237,3 +269,8 @@ if __name__ == '__main__':
 	#Plot the scatter plot data
 	pg.set_axis_options('log', 2, 'log', 2)
 	pg.scatter_plot(scatter_plot_data_x, scatter_plot_data_y)
+
+	#Plot the heatmap data
+	pg.set_text('Title', 'X', 'Y', None, None)
+	pg.set_axis_options('linear', 10, 'linear', 10)
+	pg.heatmap(heatmap_data, )
