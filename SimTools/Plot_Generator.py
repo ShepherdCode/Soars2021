@@ -27,6 +27,8 @@ class Plot_Generator:
 		self.x_tick_labels = None
 		self.y_tick_labels = None
 
+		self.COLORS = ['tab:blue', 'tab:orange', 'tab:green', 'tab:red', 'tab:purple', 'tab:brown', 'tab:pink', 'tab:gray', 'tab:olive', 'tab:cyan']
+
 	def set_text(self, title, x_label, y_label, x_tick_labels, y_tick_labels):
 		"""Sets the text of plots.
 		"""
@@ -61,18 +63,23 @@ class Plot_Generator:
 			self.y_scale = y_scale
 		self.y_base = y_base
 
-	def comparision_bar_plot(self, data_a, data_b, data_a_name, data_b_name):
+	def bar_plot(self, data_sets, data_set_names):
 		"""
-		Generates a bar plot comparing two data sets.
+		Generates a bar plot of one or many data sets.
 		"""
-		assert len(data_a) == len(data_b)
+		assert len(data_sets) == len(data_set_names)
+		assert len(data_sets) <= len(self.COLORS)
+		for i in range(1, len(data_sets)):
+			assert len(data_sets[i]) == len(data_sets[i - 1])
 
-		x = np.arange(0, len(data_a), 1)
+		NUM_SETS = len(data_sets)
+
+		x = np.arange(0, len(data_sets[0]))
 
 		plt.figure()
 
-		bar_a = self.gen_bar_plot_object(data_a, 'r', 0, 2)
-		bar_b = self.gen_bar_plot_object(data_b, 'b', 1, 2)
+		for i in range(0, NUM_SETS):
+			self.gen_bar_plot_object(data_sets[i], self.COLORS[i] , i, NUM_SETS)
 
 		if self.y_scale != None: #Needed because matplotlib does not like setting the base for linear plots
 			plt.yscale(self.y_scale, base=self.y_base)
@@ -84,7 +91,7 @@ class Plot_Generator:
 		if self.x_tick_labels != None:
 			plt.xticks(x, labels=self.x_tick_labels, rotation=self.x_tick_label_rotation, ha=self.x_tick_label_horizontal_alignment)
 
-		plt.legend([data_a_name, data_b_name])
+		plt.legend(data_set_names)
 
 		plt.show()
 
@@ -95,7 +102,7 @@ class Plot_Generator:
 		offset = width * plot_num - width / num_plots
 		if num_plots % 2 != 0:
 			offset = width * plot_num - width
-			
+
 		bar_plot = plt.bar(x + offset, data, color=color, width=width)
 		return bar_plot
 
@@ -166,7 +173,7 @@ if __name__ == '__main__':
 	pg.set_text('Title', 'X', 'Y', ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j'], None)
 
 	#Plot the bar plot data
-	pg.comparision_bar_plot(bar_plot_data_a, bar_plot_data_b, 'A', 'B')
+	pg.bar_plot([bar_plot_data_a, bar_plot_data_b], ['A', 'B'])
 
 	#Plot the box plot data
 	#Note the x tick labels. 
