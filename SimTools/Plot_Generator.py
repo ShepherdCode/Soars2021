@@ -156,6 +156,22 @@ class Plot_Generator:
 			flier.set(markersize=0.5, alpha=0.5)
 		return box_plot
 
+	def histogram(self, data, bins):
+	"""
+	Generates a histogram.
+	TODO: improve.
+	"""
+		plt.figure()
+
+		plt.hist(data, bins)
+
+		plt.title(self.title)
+		plt.xlabel(self.x_label)
+		plt.ylabel(self.y_label)
+
+		plt.show()
+
+
 #Example plots using Plot_Generator
 if __name__ == '__main__':
 	#Create some fake data
@@ -174,6 +190,8 @@ if __name__ == '__main__':
 			box_plot_data_a[i].append((i+1) * (j+1))
 			box_plot_data_b[i].append((i+1) + (j+1))
 
+	histogram_data = np.random.randn(10000)
+
 	#Set up the plot generator
 	pg = Plot_Generator()
 	pg.set_text_options(45, 'right', 0, 'center')
@@ -186,3 +204,6 @@ if __name__ == '__main__':
 	#Note the x tick labels. 
 	#It will automatically generate this using the previously set x tick labels and given data_a_name and data_b_name values
 	pg.box_plot([box_plot_data_a, box_plot_data_b], ['A', 'B'], False)
+
+	#Plot the histogram data
+	pg.histogram(histogram_data, 20)
