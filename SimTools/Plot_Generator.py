@@ -215,7 +215,7 @@ class Plot_Generator:
 			plt.xticks(np.arange(len(data_sets[0])), self.x_tick_labels, rotation=self.x_tick_label_rotation, ha=self.x_tick_label_horizontal_alignment)
 		if self.y_tick_labels != None:
 			assert len(self.y_tick_labels) == len(data_sets)
-			plt.yticks(np.arange(len(y_tick_labels)), self.y_tick_labels, rotation=self.y_tick_label_rotation, ha=self.y_tick_label_horizontal_alignment)
+			plt.yticks(np.arange(len(self.y_tick_labels)), self.y_tick_labels, rotation=self.y_tick_label_rotation, ha=self.y_tick_label_horizontal_alignment)
 
 		plt.show()
 
