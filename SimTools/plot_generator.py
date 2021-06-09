@@ -82,7 +82,7 @@ class PlotGenerator:
 		plt.figure()
 
 		for i in range(0, NUM_SETS):
-			self.gen_bar_plot_object(data_sets[i], self.COLORS[i] , i, NUM_SETS)
+			self.__gen_bar_plot_object(data_sets[i], self.COLORS[i] , i, NUM_SETS)
 
 		if self.y_scale != None: #Needed because matplotlib does not like setting the base for linear plots
 			plt.yscale(self.y_scale, basey=self.y_base)
@@ -98,7 +98,7 @@ class PlotGenerator:
 
 		plt.show()
 
-	def gen_bar_plot_object(self, data, color, plot_num, num_plots):
+	def __gen_bar_plot_object(self, data, color, plot_num, num_plots):
 		"""
 		Used in bar_plot function.
 		"""
@@ -128,7 +128,7 @@ class PlotGenerator:
 
 		boxes = []
 		for i in range(0, NUM_SETS):
-			boxes.append(self.gen_box_plot_object(data_sets[i], self.COLORS[i], i, NUM_SETS, showfliers))
+			boxes.append(self.__gen_box_plot_object(data_sets[i], self.COLORS[i], i, NUM_SETS, showfliers))
 
 		if self.y_scale != None: #Needed because matplotlib does not like setting the base for linear plots
 			plt.yscale(self.y_scale, basey=self.y_base)
@@ -153,7 +153,7 @@ class PlotGenerator:
 
 		plt.show()
 
-	def gen_box_plot_object(self, data, color, plot_num, num_plots, showfliers):
+	def __gen_box_plot_object(self, data, color, plot_num, num_plots, showfliers):
 		"""
 		Used in box_plot function.
 		"""
