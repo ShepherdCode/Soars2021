@@ -1,8 +1,9 @@
 import matplotlib.pyplot as plt
 import numpy as np
-import pandas as pd
+import numbers
 
 #TODO: Decide what data format (list, numpy, pandas) to use with Professor Miller
+#TODO: Implement numpy data format
 class PlotGenerator:
 	"""
 	Class for generating plots.
@@ -255,7 +256,6 @@ class PlotGenerator:
 
 		plt.show()
 
-
 #Example plots using PlotGenerator
 if __name__ == '__main__':
 	#Create some fake data
@@ -263,31 +263,28 @@ if __name__ == '__main__':
 	line_plot_data_y_a = line_plot_data_x**2
 	line_plot_data_y_b = line_plot_data_x**3
 
-	bar_plot_data_a = []
-	bar_plot_data_b = []
-	for i in range(1, 11):
-		bar_plot_data_a.append((i+1))
-		bar_plot_data_b.append((i+1))
-
-	box_plot_data_a = []
-	box_plot_data_b = []
+	bar_plot_data_a = np.zeros(10)
+	bar_plot_data_b = np.zeros(10)
 	for i in range(0, 10):
-		box_plot_data_a.append([])
-		box_plot_data_b.append([])
+		bar_plot_data_a[i] = i
+		bar_plot_data_b[i] = i**2
+
+	box_plot_data_a = np.zeros((10, 10))
+	box_plot_data_b = np.zeros((10, 10))
+	for i in range(0, 10):
 		for j in range(0, 10):
-			box_plot_data_a[i].append((i+1) * (j+1))
-			box_plot_data_b[i].append((i+1) + (j+1))
+			box_plot_data_a[i][j] = (i+1) * (j+1)
+			box_plot_data_b[i][j] = (i+1) + (j+1)
 
 	histogram_data = np.random.randn(10000)
 
 	scatter_plot_data_x = np.random.randn(10000)
 	scatter_plot_data_y = np.random.randn(10000)
 
-	heatmap_data = []
+	heatmap_data = np.zeros((10, 10))
 	for i in range(0, 10):
-		heatmap_data.append([])
 		for j in range(0, 10):
-			heatmap_data[i].append(i * j)
+			heatmap_data[i][j] = i * j
 
 	#Set up the plot generator
 	pg = PlotGenerator()
@@ -297,8 +294,9 @@ if __name__ == '__main__':
 	#Plot the line plot data
 	pg.line_plot(line_plot_data_x, [line_plot_data_y_a, line_plot_data_y_b], trendline=True)
 
+	d = np.array([bar_plot_data_a, bar_plot_data_b])
 	#Plot the bar plot data
-	pg.bar_plot([bar_plot_data_a, bar_plot_data_b], ['A', 'B'])
+	pg.bar_plot(d, ['A', 'B'])
 
 	#Plot the box plot data
 	#Note the x tick labels. 
