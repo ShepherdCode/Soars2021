@@ -232,18 +232,19 @@ class PlotGenerator:
 
 		plt.show()
 
-	def line_plot(self, x, y, trendline=False):
+	def line_plot(self, x, data_sets, trendline=False):
 		"""
 		Generates a line plot.
-		Cannot change x axis scale
+		Cannot change x axis scales.
 		"""
 		plt.figure()
 
-		plt.plot(x, y)
-		if trendline:
-			z = np.polyfit(x, y, 1)
-			p = np.poly1d(z)
-			plt.plot(x, p(x), 'r--')
+		for y in data_sets:
+			plt.plot(x, y)
+			if trendline:
+				z = np.polyfit(x, y, 1)
+				p = np.poly1d(z)
+				plt.plot(x, p(x), 'r--')
 
 		plt.title(self.title)
 		plt.xlabel(self.x_label)
@@ -259,7 +260,8 @@ class PlotGenerator:
 if __name__ == '__main__':
 	#Create some fake data
 	line_plot_data_x = np.linspace(0, 5, 100)
-	line_plot_data_y = line_plot_data_x**2
+	line_plot_data_y_a = line_plot_data_x**2
+	line_plot_data_y_b = line_plot_data_x**3
 
 	bar_plot_data_a = []
 	bar_plot_data_b = []
@@ -293,8 +295,7 @@ if __name__ == '__main__':
 	pg.set_text('Title', 'X', 'Y', ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j'], None)
 
 	#Plot the line plot data
-	pg.set_axis_options('log', 2, 'log', 2)
-	pg.line_plot(line_plot_data_x, line_plot_data_y, trendline=True)
+	pg.line_plot(line_plot_data_x, [line_plot_data_y_a, line_plot_data_y_b], trendline=True)
 
 	#Plot the bar plot data
 	pg.bar_plot([bar_plot_data_a, bar_plot_data_b], ['A', 'B'])
