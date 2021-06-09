@@ -3,7 +3,7 @@ import numpy as np
 import pandas as pd
 
 #TODO: Decide what data format (list, numpy, pandas) to use with Professor Miller
-class Plot_Generator:
+class PlotGenerator:
 	"""
 	Class for generating plots.
 	"""
@@ -220,7 +220,7 @@ class Plot_Generator:
 		plt.show()
 
 
-#Example plots using Plot_Generator
+#Example plots using PlotGenerator
 if __name__ == '__main__':
 	#Create some fake data
 	bar_plot_data_a = []
