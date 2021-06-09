@@ -12,41 +12,41 @@ class PlotGenerator:
 		Initialize self.
 		Sets all settables to their default values.
 		"""
-		self.x_scale = None #matplotlib defaults to linear if not specified
-		self.x_base = 10
-		self.y_scale = None #matplotlib defaults to linear if not specified
-		self.y_base = 10
-		self.x_tick_label_rotation = 0
-		self.x_tick_label_horizontal_alignment = 'center'
-		self.y_tick_label_rotation = 0
-		self.y_tick_label_horizontal_alignment = 'center'
+		self.__x_scale = None #matplotlib defaults to linear if not specified
+		self.__x_base = 10
+		self.__y_scale = None #matplotlib defaults to linear if not specified
+		self.__y_base = 10
+		self.__x_tick_label_rotation = 0
+		self.__x_tick_label_horizontal_alignment = 'center'
+		self.__y_tick_label_rotation = 0
+		self.__y_tick_label_horizontal_alignment = 'center'
 
-		self.title = ""
-		self.x_label = ""
-		self.y_label = ""
-		self.x_tick_labels = None
-		self.y_tick_labels = None
+		self.__title = ""
+		self.__x_label = ""
+		self.__y_label = ""
+		self.__x_tick_labels = None
+		self.__y_tick_labels = None
 
-		self.COLORS = ['tab:blue', 'tab:orange', 'tab:green', 'tab:red', 'tab:purple', 'tab:brown', 'tab:pink', 'tab:gray', 'tab:olive', 'tab:cyan']
+		self.__COLORS = ['tab:blue', 'tab:orange', 'tab:green', 'tab:red', 'tab:purple', 'tab:brown', 'tab:pink', 'tab:gray', 'tab:olive', 'tab:cyan']
 
 	def set_text(self, title, x_label, y_label, x_tick_labels, y_tick_labels):
 		"""
 		Sets the text of plots.
 		"""
-		self.title = title
-		self.x_label = x_label
-		self.y_label = y_label
-		self.x_tick_labels = x_tick_labels
-		self.y_tick_labels = y_tick_labels
+		self.__title = title
+		self.__x_label = x_label
+		self.__y_label = y_label
+		self.__x_tick_labels = x_tick_labels
+		self.__y_tick_labels = y_tick_labels
 
 	def set_text_options(self, x_tick_label_rotation, x_tick_label_horizontal_alignment, y_tick_label_rotation, y_tick_label_horizontal_alignment):
 		"""
 		Sets the text options of plots.
 		"""
-		self.x_tick_label_rotation = x_tick_label_rotation
-		self.x_tick_label_horizontal_alignment = x_tick_label_horizontal_alignment
-		self.y_tick_label_rotation = y_tick_label_rotation
-		self.y_tick_label_horizontal_alignment = y_tick_label_horizontal_alignment
+		self.__x_tick_label_rotation = x_tick_label_rotation
+		self.__x_tick_label_horizontal_alignment = x_tick_label_horizontal_alignment
+		self.__y_tick_label_rotation = y_tick_label_rotation
+		self.__y_tick_label_horizontal_alignment = y_tick_label_horizontal_alignment
 
 	def set_axis_options(self, x_scale, x_base, y_scale, y_base):
 		"""
@@ -55,15 +55,15 @@ class PlotGenerator:
 		Note: not all plots can change scales.
 		"""
 		if x_scale != 'linear':
-			self.x_scale = None
+			self.__x_scale = None
 		else:
-			self.x_scale = x_scale
-		self.x_base = x_base
+			self.__x_scale = x_scale
+		self.__x_base = x_base
 		if y_scale == 'linear':
-			self.y_scale = None
+			self.__y_scale = None
 		else:
-			self.y_scale = y_scale
-		self.y_base = y_base
+			self.__y_scale = y_scale
+		self.__y_base = y_base
 
 	def bar_plot(self, data_sets, data_set_names):
 		"""
@@ -71,7 +71,7 @@ class PlotGenerator:
 		Cannot change x axis scale.
 		"""
 		assert len(data_sets) == len(data_set_names)
-		assert len(data_sets) <= len(self.COLORS)
+		assert len(data_sets) <= len(self.__COLORS)
 		for i in range(1, len(data_sets)):
 			assert len(data_sets[i]) == len(data_sets[i - 1])
 
@@ -82,17 +82,17 @@ class PlotGenerator:
 		plt.figure()
 
 		for i in range(0, NUM_SETS):
-			self.__gen_bar_plot_object(data_sets[i], self.COLORS[i] , i, NUM_SETS)
+			self.__gen_bar_plot_object(data_sets[i], self.__COLORS[i] , i, NUM_SETS)
 
-		if self.y_scale != None: #Needed because matplotlib does not like setting the base for linear plots
-			plt.yscale(self.y_scale, basey=self.y_base)
+		if self.__y_scale != None: #Needed because matplotlib does not like setting the base for linear plots
+			plt.yscale(self.__y_scale, basey=self.__y_base)
 
-		plt.title(self.title)
-		plt.xlabel(self.x_label)
-		plt.ylabel(self.y_label)
+		plt.title(self.__title)
+		plt.xlabel(self.__x_label)
+		plt.ylabel(self.__y_label)
 
-		if self.x_tick_labels != None:
-			plt.xticks(x, labels=self.x_tick_labels, rotation=self.x_tick_label_rotation, ha=self.x_tick_label_horizontal_alignment)
+		if self.__x_tick_labels != None:
+			plt.xticks(x, labels=self.__x_tick_labels, rotation=self.__x_tick_label_rotation, ha=self.__x_tick_label_horizontal_alignment)
 
 		plt.legend(data_set_names)
 
@@ -118,7 +118,7 @@ class PlotGenerator:
 		Cannot change x axis scale.
 		"""
 		assert len(data_sets) == len(data_set_names)
-		assert len(data_sets) <= len(self.COLORS)
+		assert len(data_sets) <= len(self.__COLORS)
 		for i in range(1, len(data_sets)):
 			assert len(data_sets[i]) == len(data_sets[i - 1])
 
@@ -128,23 +128,23 @@ class PlotGenerator:
 
 		boxes = []
 		for i in range(0, NUM_SETS):
-			boxes.append(self.__gen_box_plot_object(data_sets[i], self.COLORS[i], i, NUM_SETS, showfliers))
+			boxes.append(self.__gen_box_plot_object(data_sets[i], self.__COLORS[i], i, NUM_SETS, showfliers))
 
-		if self.y_scale != None: #Needed because matplotlib does not like setting the base for linear plots
-			plt.yscale(self.y_scale, basey=self.y_base)
+		if self.__y_scale != None: #Needed because matplotlib does not like setting the base for linear plots
+			plt.yscale(self.__y_scale, basey=self.__y_base)
 
-		plt.title(self.title)
-		plt.xlabel(self.x_label)
-		plt.ylabel(self.y_label)
-		if self.x_tick_labels != None:
+		plt.title(self.__title)
+		plt.xlabel(self.__x_label)
+		plt.ylabel(self.__y_label)
+		if self.__x_tick_labels != None:
 			#Generate x tick labels
 			new_x_tick_labels = []
-			for label in self.x_tick_labels:
+			for label in self.__x_tick_labels:
 				for name in data_set_names:
 					new_x_tick_labels.append(label + " (" + name + ")")
 
 			x_ticks = np.arange(0, NUM_SETS * len(data_sets[0]), 1)
-			plt.xticks(x_ticks, labels=new_x_tick_labels, rotation=self.x_tick_label_rotation, ha=self.x_tick_label_horizontal_alignment)
+			plt.xticks(x_ticks, labels=new_x_tick_labels, rotation=self.__x_tick_label_rotation, ha=self.__x_tick_label_horizontal_alignment)
 
 		for_legend = []
 		for box in boxes:
@@ -176,12 +176,12 @@ class PlotGenerator:
 
 		plt.hist(data, bins)
 
-		if self.y_scale != None: #Needed because matplotlib does not like setting the base for linear plots
-			plt.yscale(self.y_scale, basey=self.y_base)
+		if self.__y_scale != None: #Needed because matplotlib does not like setting the base for linear plots
+			plt.yscale(self.__y_scale, basey=self.__y_base)
 
-		plt.title(self.title)
-		plt.xlabel(self.x_label)
-		plt.ylabel(self.y_label)
+		plt.title(self.__title)
+		plt.xlabel(self.__x_label)
+		plt.ylabel(self.__y_label)
 
 		plt.show()
 
@@ -200,9 +200,9 @@ class PlotGenerator:
 			p = np.poly1d(z)
 			plt.plot(data_x, p(data_x), 'r--')
 
-		plt.title(self.title)
-		plt.xlabel(self.x_label)
-		plt.ylabel(self.y_label)
+		plt.title(self.__title)
+		plt.xlabel(self.__x_label)
+		plt.ylabel(self.__y_label)
 
 		plt.show()
 
@@ -219,16 +219,16 @@ class PlotGenerator:
 
 		plt.imshow(data_sets, cmap='hot', interpolation='nearest')
 
-		plt.title(self.title)
-		plt.xlabel(self.x_label)
-		plt.ylabel(self.y_label)
+		plt.title(self.__title)
+		plt.xlabel(self.__x_label)
+		plt.ylabel(self.__y_label)
 
-		if self.x_tick_labels != None:
-			assert len(self.x_tick_labels) == len(data_sets[0])
-			plt.xticks(np.arange(len(data_sets[0])), self.x_tick_labels, rotation=self.x_tick_label_rotation, ha=self.x_tick_label_horizontal_alignment)
-		if self.y_tick_labels != None:
-			assert len(self.y_tick_labels) == len(data_sets)
-			plt.yticks(np.arange(len(self.y_tick_labels)), self.y_tick_labels, rotation=self.y_tick_label_rotation, ha=self.y_tick_label_horizontal_alignment)
+		if self.__x_tick_labels != None:
+			assert len(self.__x_tick_labels) == len(data_sets[0])
+			plt.xticks(np.arange(len(data_sets[0])), self.__x_tick_labels, rotation=self.__x_tick_label_rotation, ha=self.__x_tick_label_horizontal_alignment)
+		if self.__y_tick_labels != None:
+			assert len(self.__y_tick_labels) == len(data_sets)
+			plt.yticks(np.arange(len(self.__y_tick_labels)), self.__y_tick_labels, rotation=self.__y_tick_label_rotation, ha=self.__y_tick_label_horizontal_alignment)
 
 		plt.show()
 
@@ -246,12 +246,12 @@ class PlotGenerator:
 				p = np.poly1d(z)
 				plt.plot(x, p(x), 'r--')
 
-		plt.title(self.title)
-		plt.xlabel(self.x_label)
-		plt.ylabel(self.y_label)
+		plt.title(self.__title)
+		plt.xlabel(self.__x_label)
+		plt.ylabel(self.__y_label)
 
-		if self.y_scale != None: #Needed because matplotlib does not like setting the base for linear plots
-			plt.yscale(self.y_scale, basey=self.y_base)
+		if self.__y_scale != None: #Needed because matplotlib does not like setting the base for linear plots
+			plt.yscale(self.__y_scale, basey=self.__y_base)
 
 		plt.show()
 
