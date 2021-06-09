@@ -176,17 +176,19 @@ class PlotGenerator:
 
 		plt.show()
 
-	def scatter_plot(self, data_x, data_y):
+	def scatter_plot(self, data_x, data_y, trendline=False):
 		"""
 		Generates a scatter plot.
+		Cannot change x or y axis scale.
 		TODO: improve.
 		"""
 		plt.figure()
 
 		plt.scatter(data_x, data_y)
 
-		if self.y_scale != None: #Needed because matplotlib does not like setting the base for linear plots
-			plt.yscale(self.y_scale, basey=self.y_base)
+		if trendline:
+			p = np.poly1d(np.polyfit(data_x, data_y, 1))
+			plt.plot(data_x, p(data_x), "r--")
 
 		plt.title(self.title)
 		plt.xlabel(self.x_label)
@@ -250,7 +252,7 @@ if __name__ == '__main__':
 			heatmap_data[i].append(i * j)
 
 	#Set up the plot generator
-	pg = Plot_Generator()
+	pg = PlotGenerator()
 	pg.set_text_options(45, 'right', 0, 'center')
 	pg.set_text('Title', 'X', 'Y', ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j'], None)
 
@@ -267,10 +269,9 @@ if __name__ == '__main__':
 	pg.histogram(histogram_data, 20)
 
 	#Plot the scatter plot data
-	pg.set_axis_options('log', 2, 'log', 2)
-	pg.scatter_plot(scatter_plot_data_x, scatter_plot_data_y)
+	pg.scatter_plot(scatter_plot_data_x, scatter_plot_data_y, trendline=True)
 
 	#Plot the heatmap data
 	pg.set_text('Title', 'X', 'Y', None, None)
 	pg.set_axis_options('linear', 10, 'linear', 10)
-	pg.heatmap(heatmap_data, )
+	pg.heatmap(heatmap_data)
