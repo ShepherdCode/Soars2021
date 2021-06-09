@@ -196,8 +196,9 @@ class PlotGenerator:
 		plt.scatter(data_x, data_y)
 
 		if trendline:
-			p = np.poly1d(np.polyfit(data_x, data_y, 1))
-			plt.plot(data_x, p(data_x), "r--")
+			z = np.polyfit(data_x, data_y, 1)
+			p = np.poly1d(z)
+			plt.plot(data_x, p(data_x), 'r--')
 
 		plt.title(self.title)
 		plt.xlabel(self.x_label)
@@ -231,10 +232,35 @@ class PlotGenerator:
 
 		plt.show()
 
+	def line_plot(self, x, y, trendline=False):
+		"""
+		Generates a line plot.
+		Cannot change x axis scale
+		"""
+		plt.figure()
+
+		plt.plot(x, y)
+		if trendline:
+			z = np.polyfit(x, y, 1)
+			p = np.poly1d(z)
+			plt.plot(x, p(x), 'r--')
+
+		plt.title(self.title)
+		plt.xlabel(self.x_label)
+		plt.ylabel(self.y_label)
+
+		if self.y_scale != None: #Needed because matplotlib does not like setting the base for linear plots
+			plt.yscale(self.y_scale, basey=self.y_base)
+
+		plt.show()
+
 
 #Example plots using PlotGenerator
 if __name__ == '__main__':
 	#Create some fake data
+	line_plot_data_x = np.linspace(0, 5, 100)
+	line_plot_data_y = line_plot_data_x**2
+
 	bar_plot_data_a = []
 	bar_plot_data_b = []
 	for i in range(1, 11):
@@ -265,6 +291,10 @@ if __name__ == '__main__':
 	pg = PlotGenerator()
 	pg.set_text_options(45, 'right', 0, 'center')
 	pg.set_text('Title', 'X', 'Y', ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j'], None)
+
+	#Plot the line plot data
+	pg.set_axis_options('log', 2, 'log', 2)
+	pg.line_plot(line_plot_data_x, line_plot_data_y, trendline=True)
 
 	#Plot the bar plot data
 	pg.bar_plot([bar_plot_data_a, bar_plot_data_b], ['A', 'B'])
