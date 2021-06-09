@@ -68,6 +68,7 @@ class PlotGenerator:
 	def bar_plot(self, data_sets, data_set_names):
 		"""
 		Generates a bar plot of one or many data sets.
+		Cannot change x axis scale.
 		"""
 		assert len(data_sets) == len(data_set_names)
 		assert len(data_sets) <= len(self.COLORS)
@@ -98,6 +99,9 @@ class PlotGenerator:
 		plt.show()
 
 	def gen_bar_plot_object(self, data, color, plot_num, num_plots):
+		"""
+		Used in bar_plot function.
+		"""
 		x = np.arange(0, len(data), 1)
 
 		width = 1 / num_plots
@@ -111,6 +115,7 @@ class PlotGenerator:
 	def box_plot(self, data_sets, data_set_names, showfliers):
 		"""
 		Generates a box plot of one or many data sets.
+		Cannot change x axis scale.
 		"""
 		assert len(data_sets) == len(data_set_names)
 		assert len(data_sets) <= len(self.COLORS)
@@ -149,6 +154,9 @@ class PlotGenerator:
 		plt.show()
 
 	def gen_box_plot_object(self, data, color, plot_num, num_plots, showfliers):
+		"""
+		Used in box_plot function.
+		"""
 		positions = np.arange(plot_num, len(data) * num_plots, num_plots)
 		box_plot = plt.boxplot(data, patch_artist=True, positions=positions, showfliers=showfliers)
 		for box in box_plot['boxes']:
@@ -161,6 +169,7 @@ class PlotGenerator:
 	def histogram(self, data, bins):
 		"""
 		Generates a histogram.
+		Cannot change x axis scale.
 		TODO: improve.
 		"""
 		plt.figure()
@@ -199,6 +208,7 @@ class PlotGenerator:
 	def heatmap(self, data_sets):
 		"""
 		Generates a heatmap.
+		Cannot change x or y axis scale.
 		"""
 		if len(data_sets) > 1:
 			for i in range(1, len(data_sets)):
@@ -273,5 +283,4 @@ if __name__ == '__main__':
 
 	#Plot the heatmap data
 	pg.set_text('Title', 'X', 'Y', None, None)
-	pg.set_axis_options('linear', 10, 'linear', 10)
 	pg.heatmap(heatmap_data)
