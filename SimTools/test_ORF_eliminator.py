@@ -65,3 +65,54 @@ class Test_ORF_eliminator:
         msg2 = 'Both RNA are of same length!'
         assert length_rna == length_new_rna ,msg2 
         
+    def test_method4(self):
+        rna = 'ATGAAATAG'
+        length_rna = len(rna)
+        data = ORF_eliminator(rna)
+        newRNA = data.eliminate_ORF2()
+        length_new_rna = len(newRNA)
+        coordinates =data.get_coordinates()
+        length_of_orfs = coordinates[1]
+        ans = 0
+        msg ='Removed!'
+        msg2 = 'Both RNA are of same length!'
+        assert length_of_orfs == ans , msg
+        assert length_rna == length_new_rna ,msg2 
+        '''
+        This time, lets make the RNA with just codon TAG
+        rna = 'TAGTAGTAGTAGTAG'
+
+'''
+    def test_method5(self):
+        rna = 'TAGTAGTAGTAGTAG'
+        data = ORF_eliminator(rna)
+        newRNA = data.eliminate_ORF2()
+        coordinate =data.get_coordinates()
+        length = coordinate[1]
+        ans = 0
+        msg ='Removed!'
+        assert length == ans , msg
+        
+        length_rna = len(rna)
+        length_new_rna = len(newRNA)
+        msg2 = 'Both RNA are of same length!'
+        assert length_rna == length_new_rna ,msg2 
+    '''
+        Lets use letter T all the time to see if the
+        program fails. 
+    '''
+    
+    def test_method6(self):
+        rna = 'TTTTTTTTTTTTTTT'
+        data = ORF_eliminator(rna)
+        newRNA = data.eliminate_ORF2()
+        coordinate =data.get_coordinates()
+        length = coordinate[1]
+        ans = 0
+        msg ='Removed!'
+        assert length == ans , msg
+        length_rna = len(rna)
+        length_new_rna = len(newRNA)
+        msg2 = 'Both RNA are of same length!'
+        assert length_rna == length_new_rna ,msg2 
+        
