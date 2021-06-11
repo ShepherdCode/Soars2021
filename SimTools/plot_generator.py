@@ -2,8 +2,6 @@ import matplotlib.pyplot as plt
 import numpy as np
 import numbers
 
-#TODO: Decide what data format (list, numpy, pandas) to use with Professor Miller
-#TODO: Implement numpy data format
 class PlotGenerator:
 	"""
 	Class for generating plots.
@@ -32,17 +30,21 @@ class PlotGenerator:
 
 	def set_text(self, title, x_label, y_label, x_tick_labels, y_tick_labels):
 		"""
-		Sets the text of plots.
+		Sets the titles and labels of to-be-generated plots.
 		"""
 		self.__title = title
 		self.__x_label = x_label
 		self.__y_label = y_label
+		if x_tick_labels != None:
+			assert isinstance(x_tick_labels, list)
 		self.__x_tick_labels = x_tick_labels
+		if y_tick_labels != None:
+			assert isinstance(y_tick_labels, list)
 		self.__y_tick_labels = y_tick_labels
 
 	def set_text_options(self, x_tick_label_rotation, x_tick_label_horizontal_alignment, y_tick_label_rotation, y_tick_label_horizontal_alignment):
 		"""
-		Sets the text options of plots.
+		Sets the title and label text options of to-be-generated plots.
 		"""
 		self.__x_tick_label_rotation = x_tick_label_rotation
 		self.__x_tick_label_horizontal_alignment = x_tick_label_horizontal_alignment
@@ -51,9 +53,9 @@ class PlotGenerator:
 
 	def set_axis_options(self, x_scale, x_base, y_scale, y_base):
 		"""
-		Set the axis options of the plots.
+		Set the axis options of to-be-generated plots.
 		Changing the bases does nothing if the scale is None or 'linear'.
-		Note: not all plots can change scales.
+		Not all plots can change scales.
 		"""
 		if x_scale != 'linear':
 			self.__x_scale = None
@@ -71,12 +73,15 @@ class PlotGenerator:
 		Generates a bar plot of one or many data sets.
 		Cannot change x axis scale.
 		"""
-		assert len(data_sets) == len(data_set_names)
-		assert len(data_sets) <= len(self.__COLORS)
-		for i in range(1, len(data_sets)):
-			assert len(data_sets[i]) == len(data_sets[i - 1])
-
+		assert isinstance(data_sets, (list, np.ndarray))
+		for data_set in data_sets:
+			assert isinstance(data_set, np.ndarray)
 		NUM_SETS = len(data_sets)
+		assert isinstance(data_set_names, list)
+		assert NUM_SETS == len(data_set_names)
+		assert NUM_SETS <= len(self.__COLORS)
+		for i in range(1, NUM_SETS):
+			assert len(data_sets[i]) == len(data_sets[i - 1])
 
 		x = np.arange(0, len(data_sets[0]))
 
@@ -103,6 +108,7 @@ class PlotGenerator:
 		"""
 		Used in bar_plot function.
 		"""
+		#Note: assertions all handled earlier in bar_plot
 		x = np.arange(0, len(data), 1)
 
 		width = 1 / num_plots
@@ -118,12 +124,15 @@ class PlotGenerator:
 		Generates a box plot of one or many data sets.
 		Cannot change x axis scale.
 		"""
-		assert len(data_sets) == len(data_set_names)
-		assert len(data_sets) <= len(self.__COLORS)
-		for i in range(1, len(data_sets)):
-			assert len(data_sets[i]) == len(data_sets[i - 1])
-
+		assert isinstance(data_sets, (list, np.ndarray))
+		for data_set in data_sets:
+			assert isinstance(data_set, np.ndarray)
 		NUM_SETS = len(data_sets)
+		assert isinstance(data_set_names, list)
+		assert NUM_SETS == len(data_set_names)
+		assert NUM_SETS <= len(self.__COLORS)
+		for i in range(1, NUM_SETS):
+			assert len(data_sets[i]) == len(data_sets[i - 1])
 
 		plt.figure()
 
@@ -171,8 +180,8 @@ class PlotGenerator:
 		"""
 		Generates a histogram.
 		Cannot change x axis scale.
-		TODO: improve.
 		"""
+		assert isinstance(data, np.ndarray)
 		plt.figure()
 
 		plt.hist(data, bins)
@@ -190,8 +199,10 @@ class PlotGenerator:
 		"""
 		Generates a scatter plot.
 		Cannot change x or y axis scale.
-		TODO: improve.
 		"""
+		assert isinstance(data_x, np.ndarray)
+		assert isinstance(data_y, np.ndarray)
+
 		plt.figure()
 
 		plt.scatter(data_x, data_y)
@@ -212,8 +223,12 @@ class PlotGenerator:
 		Generates a heatmap.
 		Cannot change x or y axis scale.
 		"""
-		if len(data_sets) > 1:
-			for i in range(1, len(data_sets)):
+		assert isinstance(data_sets, (list, np.ndarray))
+		for data_set in data_sets:
+			assert isinstance(data_set, np.ndarray)
+		NUM_SETS = len(data_sets)
+		if NUM_SETS > 1:
+			for i in range(1, NUM_SETS):
 				assert len(data_sets[i]) == len(data_sets[i - 1])
 
 		plt.figure()
@@ -228,7 +243,7 @@ class PlotGenerator:
 			assert len(self.__x_tick_labels) == len(data_sets[0])
 			plt.xticks(np.arange(len(data_sets[0])), self.__x_tick_labels, rotation=self.__x_tick_label_rotation, ha=self.__x_tick_label_horizontal_alignment)
 		if self.__y_tick_labels != None:
-			assert len(self.__y_tick_labels) == len(data_sets)
+			assert len(self.__y_tick_labels) == NUM_SETS
 			plt.yticks(np.arange(len(self.__y_tick_labels)), self.__y_tick_labels, rotation=self.__y_tick_label_rotation, ha=self.__y_tick_label_horizontal_alignment)
 
 		plt.show()
@@ -294,9 +309,8 @@ if __name__ == '__main__':
 	#Plot the line plot data
 	pg.line_plot(line_plot_data_x, [line_plot_data_y_a, line_plot_data_y_b], trendline=True)
 
-	d = np.array([bar_plot_data_a, bar_plot_data_b])
 	#Plot the bar plot data
-	pg.bar_plot(d, ['A', 'B'])
+	pg.bar_plot([bar_plot_data_a, bar_plot_data_b], ['A', 'B'])
 
 	#Plot the box plot data
 	#Note the x tick labels. 
