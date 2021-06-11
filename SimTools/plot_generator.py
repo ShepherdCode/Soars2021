@@ -2,8 +2,6 @@ import matplotlib.pyplot as plt
 import numpy as np
 import numbers
 
-#TODO: Decide what data format (list, numpy, pandas) to use with Professor Miller
-#TODO: Implement numpy data format
 class PlotGenerator:
 	"""
 	Class for generating plots.
@@ -32,7 +30,7 @@ class PlotGenerator:
 
 	def set_text(self, title, x_label, y_label, x_tick_labels, y_tick_labels):
 		"""
-		Sets the text of plots.
+		Sets the titles and labels of to-be-generated plots.
 		"""
 		self.__title = title
 		self.__x_label = x_label
@@ -46,7 +44,7 @@ class PlotGenerator:
 
 	def set_text_options(self, x_tick_label_rotation, x_tick_label_horizontal_alignment, y_tick_label_rotation, y_tick_label_horizontal_alignment):
 		"""
-		Sets the text options of plots.
+		Sets the title and label text options of to-be-generated plots.
 		"""
 		self.__x_tick_label_rotation = x_tick_label_rotation
 		self.__x_tick_label_horizontal_alignment = x_tick_label_horizontal_alignment
@@ -55,9 +53,9 @@ class PlotGenerator:
 
 	def set_axis_options(self, x_scale, x_base, y_scale, y_base):
 		"""
-		Set the axis options of the plots.
+		Set the axis options of to-be-generated plots.
 		Changing the bases does nothing if the scale is None or 'linear'.
-		Note: not all plots can change scales.
+		Not all plots can change scales.
 		"""
 		if x_scale != 'linear':
 			self.__x_scale = None
