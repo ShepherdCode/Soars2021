@@ -19,7 +19,6 @@ class PlotGenerator:
 		self.__x_tick_label_horizontal_alignment = 'center'
 		self.__y_tick_label_rotation = 0
 		self.__y_tick_label_horizontal_alignment = 'center'
-
 		self.__title = ""
 		self.__x_label = ""
 		self.__y_label = ""
@@ -32,14 +31,14 @@ class PlotGenerator:
 		"""
 		Sets the titles and labels of to-be-generated plots.
 		"""
+		if x_tick_labels != None:
+			assert isinstance(x_tick_labels, list)
+		if y_tick_labels != None:
+			assert isinstance(y_tick_labels, list)
 		self.__title = title
 		self.__x_label = x_label
 		self.__y_label = y_label
-		if x_tick_labels != None:
-			assert isinstance(x_tick_labels, list)
 		self.__x_tick_labels = x_tick_labels
-		if y_tick_labels != None:
-			assert isinstance(y_tick_labels, list)
 		self.__y_tick_labels = y_tick_labels
 
 	def set_text_options(self, x_tick_label_rotation, x_tick_label_horizontal_alignment, y_tick_label_rotation, y_tick_label_horizontal_alignment):
