@@ -43,6 +43,8 @@ class ORF_counter():
     def __init__(self,debug=False):
         self.verbose=debug # debugging
         self.set_sequence('')
+    def get_max_cds_len(self):
+        return self.max_orf_len + 3
     def get_max_orf_len(self):
         return self.max_orf_len
     def count_maximal_orfs(self):
