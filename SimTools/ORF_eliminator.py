@@ -3,56 +3,85 @@ from RNA_describe import ORF_counter
 from RNA_describe import ORF_RE
 import math
 import random
+import argparse
+
+
 '''
-This class constructs the RNA sequence without 
+This class constructs the RNA sequence without ORF length
 
 '''
 class ORF_eliminator:
-    def __init__(self, RNA):
-        self.RNA =RNA
-    def print_RNA(self):
-        print(self.RNA)
-    def get_coordinates(self):
-        orfs = ORF_RE()
-        lengthSet = orfs.get_three_lengths(self.RNA)
-        return (lengthSet)
-    def set_RNA(self, newRNA):
-        self.RNA = newRNA
     
+        
     '''
-        METHOD 1: 
-        This method eliminates an ORF by killing the stop codons.
-        It goes to the stop codons and replaces 'T' with ('A','C', 'G') randomly
+    The following function takes RNA as a parameter
+    and returns the set of lengths of 5UTF, ORF, 3UTF
+
     '''
-    def eliminate_ORF(self):
-        #For replacing 'T' in stop codons.
-        
-        choices = ['A','C','G']
-        lengths = self.get_coordinates()
-        utr5 = lengths[0]
-        ofr = lengths[1]
-        utr3 = lengths[2]
-        #Repeats the process unless the ORF comes down to 0.
-        while(ofr!=0):
-            temp = list(self.RNA)
-            temp[utr5+ofr] = random.choice(choices)
-            new_RNA = "".join(temp)
-            print(new_RNA)
-            self.set_RNA(new_RNA)
-            lengths = self.get_coordinates()
-            utr5 = lengths[0]
-            ofr = lengths[1]
-            utr3 = lengths[2]
-            
-        return(self.RNA)
-        
-        
+    def get_coordinates(self,RNA):
+        '''
+        This method  is used from Professor Miller's RNA_describe.
+        Professor Miller used Regular Expression to locate ORFs
+        which is proven to be more effective and faster especially
+        when the ORFs are in different frames.
         
         '''
+        orfs = ORF_RE()
+        #lengthset gives set of 3 lengths in list format.
+        lengthSet = orfs.get_three_lengths(RNA)
+        return (lengthSet)
+   
+    
+    '''
+------------------------------------------------------------------------------
+        METHOD 1: 
+        This method eliminates an ORF by killing the stop codons.
+        It goes to the stop codons and replaces 'T'
+        with ('A','C', 'G') randomly.
+        Howver, we donot want to affect the randomness of 'T' so, whenever
+        'T' is targetted, another 'T' will replace  letter in random
+        place. This will make the number of 'T' constant.
+------------------------------------------------------------------------------
+    '''
+    def eliminate_ORF(self, RNA):
+        
+        #choices defines the possible letters that could replace 'T'
+        choices = ['A','C','G']
+        lengths = self.get_coordinates(RNA) #Gets the length of 5'UTF, ORF, 3'UTF
+        #lengths is the list of three length. Hence, indices are used for referral.
+        utr5 = lengths[0]
+        orf = lengths[1]
+        utr3 = lengths[2]
+        counter =0
+        
+        while(orf!=0):
+            #print('Iteration: ' + str(counter))
+           # print(RNA)
+            #counter+=1 #Counts the iteration to see how many loops occured to reach destination
+            #print('ORF found!')
+            temp = list(RNA)
+            temp[utr5+orf] = random.choice(choices)
+            #randonNumber get the random location to inject {T}
+            #This way the occurance of T isnt tampered .
+            
+            randomNumber = random.randint(0,len(RNA))
+            temp[randomNumber] = 'T'
+            new_RNA = "".join(temp)
+            RNA = new_RNA
+            lengths = self.get_coordinates(RNA)
+            utr5 = lengths[0]
+            orf = lengths[1]
+            utr3 = lengths[2]
+       # print("It took " + str(counter)+ " loops to eliminate ORF")    
+        return(RNA)
+        
+ #REFACTORED TILL HERE ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^       
+        
+    '''
         METHOD2:
         Injecting STOP CODONS in Middle repeatedly. 
         
-        '''
+    '''
         
     def eliminate_ORF2(self):
         
@@ -82,13 +111,33 @@ class ORF_eliminator:
         
         
          
+def args_parse():
+        
+    global args
+    parser = argparse.ArgumentParser(description ='This program eliminates the orf')
+    parser.add_argument('fileName',help='input filename (fasta)',type=str)
+    #parser.add_argument('--resultFile', help = 'output filename (fasta)', type = str)
+    args = parser.parse_args()
         
         
 if __name__ == '__main__':
-     #RNA = 'TATAATGTCACTGTTTTACTATAGGGTCGTAGGGTACTGGACCCCGCATT'
-     #RNA = 'ATGTTGAGCCCCATTAGATTACCAGATTCTGACCGGATCCGTTTAATAGA'
-     RNA = 'AGGATGCCCTGA'+'ATGCCCCCCTAG'+'CC'
-     trial = ORF_eliminator(RNA)
-  
-     print(trial.eliminate_ORF2())
-   
+    
+        args_parse()
+        #fileName is the argument passed as a name for text file containing RNA.
+        fileName = args.fileName
+    
+        with open(fileName, "r+") as file:
+            #result.txt records the inputfile but with eliminated ORF.
+            with open("result.txt", "w") as resultFile:
+                lines = file.readlines()
+                for line in lines:
+                    if(line[0] =='>'):
+                        resultFile.write(line)
+                        #Breaks the Loop and continues with next line.
+                        continue
+                    RNA = line
+                    tools = ORF_eliminator()
+                    newRNA = tools.eliminate_ORF(RNA)
+                    resultFile.write(newRNA)
+            
+        
