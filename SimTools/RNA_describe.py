@@ -1,6 +1,7 @@
 import traceback
 import argparse
 import re
+import random
 
 def assert_imported_RNA_describe():
     return True
@@ -110,6 +111,48 @@ class ORF_counter():
             if this_len>self.max_orf_len:
                 self.max_orf_len=this_len
         self.prev_start[frame]=pos
+
+class Random_Base_Oracle():
+    def __init__(self,rna_len,debug=False):
+        self.rna_len=rna_len
+        self.bases=['A','C','G','T']
+        self.debug=debug
+    def get_one_sequence(self):
+        RNA_LEN=self.rna_len
+        BASES=self.bases
+        between_bases = random.randint(0,RNA_LEN-6)
+        utr5_bases = (RNA_LEN - (between_bases + 6)) // 2
+        utr3_bases = RNA_LEN - (utr5_bases + (between_bases+6))
+        one_seq  = "".join(random.choices(BASES,k=utr5_bases))
+        one_seq += 'ATG'
+        one_seq += "".join(random.choices(BASES,k=between_bases))
+        random_stop = random.choice(['TAA','TAG','TGA']) # random frame
+        one_seq += random_stop
+        one_seq += "".join(random.choices(BASES,k=utr3_bases))
+        if self.debug and len(one_seq) != self.rna_len:
+            print("WRONG LENGTH:",len(one_seq),utr5_bases,between_bases,utr3_bases)
+        return one_seq
+    def get_partitioned_sequences(self,CDS_LEN,goal_per_class):
+        pc_seqs=[]
+        nc_seqs=[]
+        oc = ORF_counter()
+        trials = 0
+        pc_cnt = 0
+        nc_cnt = 0
+        while pc_cnt<goal_per_class or nc_cnt<goal_per_class:
+            trials += 1
+            one_seq=self.get_one_sequence()
+            oc.set_sequence(one_seq)
+            cds_len = oc.get_max_cds_len() + 3
+            if cds_len >= CDS_LEN and pc_cnt<goal_per_class:
+                pc_cnt += 1
+                pc_seqs.append(one_seq)
+            elif cds_len < CDS_LEN and nc_cnt<goal_per_class:
+                nc_cnt += 1
+                nc_seqs.append(one_seq)
+        if self.debug:
+            print ("It took %d trials to reach %d per class."%(trials,goal_per_class))
+        return pc_seqs,nc_seqs
 
 class RNA_describer():
     '''Assume RNA composed of ACGT upper case no N.'''
