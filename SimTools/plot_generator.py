@@ -99,7 +99,7 @@ class PlotGenerator:
 		if self.__x_tick_labels != None:
 			plt.xticks(x, labels=self.__x_tick_labels, rotation=self.__x_tick_label_rotation, ha=self.__x_tick_label_horizontal_alignment)
 
-		plt.legend(data_set_names)
+		plt.legend(data_set_names, loc='upper left')
 
 		plt.show()
 
@@ -158,7 +158,7 @@ class PlotGenerator:
 		for_legend = []
 		for box in boxes:
 			for_legend.append(box['boxes'][0])
-		plt.legend(for_legend, data_set_names)
+		plt.legend(for_legend, data_set_names, loc='upper left')
 
 		plt.show()
 
