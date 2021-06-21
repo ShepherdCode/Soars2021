@@ -82,8 +82,6 @@ class PlotGenerator:
 		for i in range(1, NUM_SETS):
 			assert len(data_sets[i]) == len(data_sets[i - 1])
 
-		x = np.arange(0, len(data_sets[0]))
-
 		plt.figure()
 
 		for i in range(0, NUM_SETS):
@@ -95,11 +93,16 @@ class PlotGenerator:
 		plt.title(self.__title)
 		plt.xlabel(self.__x_label)
 		plt.ylabel(self.__y_label)
-
 		if self.__x_tick_labels != None:
-			plt.xticks(x, labels=self.__x_tick_labels, rotation=self.__x_tick_label_rotation, ha=self.__x_tick_label_horizontal_alignment)
+			#Generate x tick labels
+			new_x_tick_labels = []
+			for label in self.__x_tick_labels:
+				for name in data_set_names:
+					new_x_tick_labels.append(label + " (" + name + ")")
+			x_ticks = np.arange(0, NUM_SETS * len(data_sets[0]), 1)
+			plt.xticks(x_ticks, labels=new_x_tick_labels, rotation=self.__x_tick_label_rotation, ha=self.__x_tick_label_horizontal_alignment)
 
-		plt.legend(data_set_names)
+		plt.legend(data_set_names, loc='upper left')
 
 		plt.show()
 
@@ -108,14 +111,8 @@ class PlotGenerator:
 		Used in bar_plot function.
 		"""
 		#Note: assertions all handled earlier in bar_plot
-		x = np.arange(0, len(data), 1)
-
-		width = 1 / num_plots
-		offset = width * plot_num - width / num_plots
-		if num_plots % 2 != 0:
-			offset = width * plot_num - width
-
-		bar_plot = plt.bar(x + offset, data, color=color, width=width)
+		positions = np.arange(plot_num, len(data) * num_plots, num_plots)
+		bar_plot = plt.bar(positions, data, color=color)
 		return bar_plot
 
 	def box_plot(self, data_sets, data_set_names, showfliers):
@@ -158,7 +155,7 @@ class PlotGenerator:
 		for_legend = []
 		for box in boxes:
 			for_legend.append(box['boxes'][0])
-		plt.legend(for_legend, data_set_names)
+		plt.legend(for_legend, data_set_names, loc='upper left')
 
 		plt.show()
 
