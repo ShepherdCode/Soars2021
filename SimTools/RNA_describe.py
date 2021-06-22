@@ -126,6 +126,7 @@ class ORF_counter():
                     self.__orf_starts_at__(pos) # ATGX
                 pos=pos-1
     def __orf_ends_at__(self,pos):
+        # Assume we are working right-to-left (backward)
         # to do: keep track of frame to reduce modulus calls
         frame=pos%3
         if self.verbose:
@@ -133,6 +134,7 @@ class ORF_counter():
         self.prev_start[frame]=0
         self.prev_end[frame]=pos
     def __orf_starts_at__(self,pos):
+        # Assume we are working right-to-left (backward)
         # to do: keep track of frame to reduce modulus calls
         frame=pos%3
         if self.verbose:
@@ -182,7 +184,7 @@ class Random_Base_Oracle():
             trials += 1
             one_seq=self.get_one_sequence()
             oc.set_sequence(one_seq)
-            cds_len = oc.get_max_cds_len() 
+            cds_len = oc.get_max_cds_len()
             if cds_len >= CDS_LEN and pc_cnt<goal_per_class:
                 pc_cnt += 1
                 pc_seqs.append(one_seq)
