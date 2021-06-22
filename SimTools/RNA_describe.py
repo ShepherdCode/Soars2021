@@ -38,6 +38,45 @@ class ORF_RE():
             pos = s.start()+1
             s=self.canonical_re.search(RNA,pos)
         return orfs
+    
+    def get_codon_number(self, RNA):
+        '''
+        The function get_codon_numbers returns the number of start
+        and stop codons present in the parameter.
+        It goes through the sequence and takes three letters in frame
+        and checks if it is the Start/Stop codon
+        '''
+        start=stop=0
+        
+        for i in range(len(RNA)-2):
+            if((RNA[i]=='C') or (RNA[i]=='G')):
+                continue
+
+            result = RNA[i]+ RNA[i+1] + RNA[i+2]
+            if(result=='ATG'):
+                start = start+1
+            if((result =='TAA') or (result == 'TAG') or (result == 'TGA')):
+                stop = stop+1
+        return ([start,stop])
+    
+
+    def get_number_bases(self, RNA):
+        '''
+        The function below calculates the number of each bases in
+        given RNA as parameter. It returns the result as list.
+        '''
+        a=c=t=g=0
+        for i in range(len(RNA)):
+            if(RNA[i] == 'A'):
+                a+=1
+            if(RNA[i] == 'C'):
+                c+=1
+            if(RNA[i] == 'T'):
+                t+=1
+            if(RNA[i] == 'G'):
+                g+=1
+            
+        return([a,c,t,g])
 
 class ORF_counter():
     '''Assume RNA composed of ACGT upper case no N.'''
