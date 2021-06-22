@@ -81,6 +81,8 @@ class PlotGenerator:
 		assert NUM_SETS <= len(self.__COLORS)
 		for i in range(1, NUM_SETS):
 			assert len(data_sets[i]) == len(data_sets[i - 1])
+		for ds in data_sets:
+			assert len(ds) == len(self.__x_tick_labels)
 
 		plt.figure()
 
@@ -129,6 +131,8 @@ class PlotGenerator:
 		assert NUM_SETS <= len(self.__COLORS)
 		for i in range(1, NUM_SETS):
 			assert len(data_sets[i]) == len(data_sets[i - 1])
+		for ds in data_sets:
+			assert len(ds) == len(self.__x_tick_labels)
 
 		plt.figure()
 
