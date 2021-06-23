@@ -96,11 +96,7 @@ class PlotGenerator:
 		plt.xlabel(self.__x_label)
 		plt.ylabel(self.__y_label)
 		if self.__x_tick_labels != None:
-			#Generate x tick labels
-			new_x_tick_labels = []
-			for label in self.__x_tick_labels:
-				for name in data_set_names:
-					new_x_tick_labels.append(label + " (" + name + ")")
+			new_x_tick_labels = self.combine_data_set_names_with_x_tick_labels(data_set_names)
 			x_ticks = np.arange(0, NUM_SETS * len(data_sets[0]), 1)
 			plt.xticks(x_ticks, labels=new_x_tick_labels, rotation=self.__x_tick_label_rotation, ha=self.__x_tick_label_horizontal_alignment)
 
@@ -147,12 +143,7 @@ class PlotGenerator:
 		plt.xlabel(self.__x_label)
 		plt.ylabel(self.__y_label)
 		if self.__x_tick_labels != None:
-			#Generate x tick labels
-			new_x_tick_labels = []
-			for label in self.__x_tick_labels:
-				for name in data_set_names:
-					new_x_tick_labels.append(label + " (" + name + ")")
-
+			new_x_tick_labels = self.combine_data_set_names_with_x_tick_labels(data_set_names)
 			x_ticks = np.arange(0, NUM_SETS * len(data_sets[0]), 1)
 			plt.xticks(x_ticks, labels=new_x_tick_labels, rotation=self.__x_tick_label_rotation, ha=self.__x_tick_label_horizontal_alignment)
 
@@ -168,6 +159,7 @@ class PlotGenerator:
 		Used in box_plot function.
 		"""
 		positions = np.arange(plot_num, len(data) * num_plots, num_plots)
+
 		box_plot = plt.boxplot(data, patch_artist=True, positions=positions, showfliers=showfliers)
 		for box in box_plot['boxes']:
 			box.set(color=color, linewidth=1)
@@ -271,6 +263,13 @@ class PlotGenerator:
 
 		plt.show()
 
+	def combine_data_set_names_with_x_tick_labels(self, data_set_names):
+		new_x_tick_labels = []
+		for label in self.__x_tick_labels:
+			for name in data_set_names:
+				new_x_tick_labels.append(label + f'({name})')
+		return new_x_tick_labels
+
 #Example plots using PlotGenerator
 if __name__ == '__main__':
 	#Create some fake data
@@ -284,12 +283,11 @@ if __name__ == '__main__':
 		bar_plot_data_a[i] = i
 		bar_plot_data_b[i] = i**2
 
-	box_plot_data_a = np.zeros((10, 10))
-	box_plot_data_b = np.zeros((10, 10))
+	box_plot_data_a = np.empty(10, dtype=object)
+	box_plot_data_b = np.empty(10, dtype=object)
 	for i in range(0, 10):
-		for j in range(0, 10):
-			box_plot_data_a[i][j] = (i+1) * (j+1)
-			box_plot_data_b[i][j] = (i+1) + (j+1)
+		box_plot_data_a[i] = np.random.rand(10)
+		box_plot_data_b[i] = np.random.rand(20)
 
 	histogram_data = np.random.randn(10000)
 
