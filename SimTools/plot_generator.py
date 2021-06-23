@@ -2,12 +2,13 @@ import matplotlib.pyplot as plt
 import matplotlib._color_data as mcd
 import numpy as np
 import numbers
+import random
 
 class PlotGenerator:
 	"""
 	Class for generating plots.
 	"""
-	def __init__(self):
+	def __init__(self, starting_color_index=None):
 		"""
 		Initialize self.
 		Sets all settables to their default values.
@@ -29,6 +30,10 @@ class PlotGenerator:
 		self.__COLORS = []
 		for name in mcd.XKCD_COLORS:
 			self.__COLORS.append(name)
+		if starting_color_index == None:
+			self.__STARTING_COLOR_INDEX = random.randint(0, len(self.__COLORS))
+		else:
+			self.__STARTING_COLOR_INDEX = starting_color_index
 		#self.__COLORS = ['tab:blue', 'tab:orange', 'tab:green', 'tab:red', 'tab:purple', 'tab:brown', 'tab:pink', 'tab:gray', 'tab:olive', 'tab:cyan']
 
 	def set_text(self, title, x_label, y_label, x_tick_labels, y_tick_labels):
@@ -91,7 +96,7 @@ class PlotGenerator:
 		plt.figure()
 
 		for i in range(0, NUM_SETS):
-			self.__gen_bar_plot_object(data_sets[i], self.__COLORS[i] , i, NUM_SETS)
+			self.__gen_bar_plot_object(data_sets[i], self.select_color(i) , i, NUM_SETS)
 
 		if self.__y_scale != None: #Needed because matplotlib does not like setting the base for linear plots
 			plt.yscale(self.__y_scale, basey=self.__y_base)
@@ -138,7 +143,7 @@ class PlotGenerator:
 
 		boxes = []
 		for i in range(0, NUM_SETS):
-			boxes.append(self.__gen_box_plot_object(data_sets[i], self.__COLORS[i], i, NUM_SETS, showfliers))
+			boxes.append(self.__gen_box_plot_object(data_sets[i], self.select_color(i), i, NUM_SETS, showfliers))
 
 		if self.__y_scale != None: #Needed because matplotlib does not like setting the base for linear plots
 			plt.yscale(self.__y_scale, basey=self.__y_base)
@@ -273,6 +278,12 @@ class PlotGenerator:
 			for name in data_set_names:
 				new_x_tick_labels.append(label + f'({name})')
 		return new_x_tick_labels
+
+	def select_color(self, index):
+		selection_index = index + self.__STARTING_COLOR_INDEX
+		if selection_index >= len(self.__COLORS):
+			selection_index -= len(self.__COLORS)
+		return self.__COLORS[selection_index]
 
 #Example plots using PlotGenerator
 if __name__ == '__main__':
