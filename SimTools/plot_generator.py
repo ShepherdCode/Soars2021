@@ -34,7 +34,7 @@ class PlotGenerator:
 		if color_shuffle_seed != None:
 			seed = color_shuffle_seed
 		else:
-			seed = time.time_ns()
+			seed = self.generate_seed()
 
 		random.seed(seed)
 		random.shuffle(self.__COLORS)
@@ -293,6 +293,11 @@ class PlotGenerator:
 		"""
 		return self.__COLORS[index]
 
+	def generate_seed(self):
+		"""
+		Generate seed.
+		"""
+		return time.time_ns()
 #Example plots using PlotGenerator
 if __name__ == '__main__':
 	#Create some fake data
