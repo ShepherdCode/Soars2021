@@ -6,7 +6,7 @@ import random
 
 class PlotGenerator:
 	"""
-	Class for generating plots.
+	Class for generating plots using matplotlib.
 	"""
 	def __init__(self, starting_color_index=None):
 		"""
@@ -273,6 +273,9 @@ class PlotGenerator:
 		plt.show()
 
 	def combine_data_set_names_with_x_tick_labels(self, data_set_names):
+		"""
+		Add the names of data sets to each x tick label.
+		"""
 		new_x_tick_labels = []
 		for label in self.__x_tick_labels:
 			for name in data_set_names:
@@ -280,6 +283,9 @@ class PlotGenerator:
 		return new_x_tick_labels
 
 	def select_color(self, index):
+		"""
+		Select a xkcd color. 
+		"""
 		selection_index = index + self.__STARTING_COLOR_INDEX
 		if selection_index >= len(self.__COLORS):
 			selection_index -= len(self.__COLORS)
