@@ -1,4 +1,5 @@
 import matplotlib.pyplot as plt
+import matplotlib._color_data as mcd
 import numpy as np
 import numbers
 
@@ -25,7 +26,10 @@ class PlotGenerator:
 		self.__x_tick_labels = None
 		self.__y_tick_labels = None
 
-		self.__COLORS = ['tab:blue', 'tab:orange', 'tab:green', 'tab:red', 'tab:purple', 'tab:brown', 'tab:pink', 'tab:gray', 'tab:olive', 'tab:cyan']
+		self.__COLORS = []
+		for name in mcd.XKCD_COLORS:
+			self.__COLORS.append(name)
+		#self.__COLORS = ['tab:blue', 'tab:orange', 'tab:green', 'tab:red', 'tab:purple', 'tab:brown', 'tab:pink', 'tab:gray', 'tab:olive', 'tab:cyan']
 
 	def set_text(self, title, x_label, y_label, x_tick_labels, y_tick_labels):
 		"""
