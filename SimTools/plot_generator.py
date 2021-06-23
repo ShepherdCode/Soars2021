@@ -3,12 +3,13 @@ import matplotlib._color_data as mcd
 import numpy as np
 import numbers
 import random
+import time
 
 class PlotGenerator:
 	"""
 	Class for generating plots using matplotlib.
 	"""
-	def __init__(self, starting_color_index=None):
+	def __init__(self, color_shuffle_seed=None):
 		"""
 		Initialize self.
 		Sets all settables to their default values.
@@ -30,10 +31,14 @@ class PlotGenerator:
 		self.__COLORS = []
 		for name in mcd.XKCD_COLORS:
 			self.__COLORS.append(name)
-		if starting_color_index == None:
-			self.__STARTING_COLOR_INDEX = random.randint(0, len(self.__COLORS))
+		if color_shuffle_seed != None:
+			seed = color_shuffle_seed
 		else:
-			self.__STARTING_COLOR_INDEX = starting_color_index
+			seed = time.time_ns()
+
+		random.seed(seed)
+		random.shuffle(self.__COLORS)
+		print('Color Shuffle Seed:', seed, '(copy if you like the colors)')
 		#self.__COLORS = ['tab:blue', 'tab:orange', 'tab:green', 'tab:red', 'tab:purple', 'tab:brown', 'tab:pink', 'tab:gray', 'tab:olive', 'tab:cyan']
 
 	def set_text(self, title, x_label, y_label, x_tick_labels, y_tick_labels):
@@ -286,10 +291,7 @@ class PlotGenerator:
 		"""
 		Select a xkcd color. 
 		"""
-		selection_index = index + self.__STARTING_COLOR_INDEX
-		if selection_index >= len(self.__COLORS):
-			selection_index -= len(self.__COLORS)
-		return self.__COLORS[selection_index]
+		return self.__COLORS[index]
 
 #Example plots using PlotGenerator
 if __name__ == '__main__':
