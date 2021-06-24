@@ -7,7 +7,7 @@ class PlotGenerator:
 	"""
 	Class for generating plots using matplotlib.
 	"""
-	def __init__(self, reproducability_seed=None, number_of_colors=32, color_difference_threshold=0.15):
+	def __init__(self, reproducability_seed=None, number_of_colors=16, color_difference_threshold=0.20):
 		"""
 		Initialize self.
 		Sets all settables to their default values.
