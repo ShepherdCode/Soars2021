@@ -1,7 +1,5 @@
 import matplotlib.pyplot as plt
-import matplotlib._color_data as mcd
 import numpy as np
-import numbers
 import random
 import time
 
@@ -9,10 +7,11 @@ class PlotGenerator:
 	"""
 	Class for generating plots using matplotlib.
 	"""
-	def __init__(self, color_shuffle_seed=None):
+	def __init__(self, reproducability_seed=None, number_of_colors=32, color_difference_threshold=0.15):
 		"""
 		Initialize self.
 		Sets all settables to their default values.
+		WARNING: setting the number_of_colors and/or color_difference_threshold to large will cause long if not infinite wait times for color generation.
 		"""
 		self.__x_scale = None #matplotlib defaults to linear if not specified
 		self.__x_base = 10
@@ -28,18 +27,49 @@ class PlotGenerator:
 		self.__x_tick_labels = None
 		self.__y_tick_labels = None
 
-		self.__COLORS = []
-		for name in mcd.XKCD_COLORS:
-			self.__COLORS.append(name)
-		if color_shuffle_seed != None:
-			seed = color_shuffle_seed
+		if reproducability_seed != None:
+			seed = reproducability_seed
 		else:
 			seed = self.generate_seed()
-
 		random.seed(seed)
-		random.shuffle(self.__COLORS)
-		print('Color Shuffle Seed:', seed, '(copy if you like the colors)')
-		#self.__COLORS = ['tab:blue', 'tab:orange', 'tab:green', 'tab:red', 'tab:purple', 'tab:brown', 'tab:pink', 'tab:gray', 'tab:olive', 'tab:cyan']
+		print('Seed:', seed, '(copy seed to reproduce colors)')
+
+		self.__COLORS = self.generate_colors(number_of_colors, color_difference_threshold)
+
+	def generate_colors(self, number_of_colors, difference_threshold):
+		"""
+		Generate random colors.
+		Filter out too similar colors.
+		"""
+		n = 0
+		colors = []
+		while n < number_of_colors:
+			new_color = self.generate_random_color()
+			is_different_enough = True
+			for color in colors:
+				if self.difference_between_colors(color, new_color) < difference_threshold:
+					is_different_enough = False
+					break
+			if is_different_enough:
+				colors.append(new_color)
+				n += 1
+		return colors
+
+	def difference_between_colors(self, a, b):
+		"""
+		Get the difference between two colors.
+		#TODO: determine if math if correct
+		"""
+		diff_r = abs(a[0] - b[0])
+		diff_g = abs(a[1] - b[1])
+		diff_b = abs(a[2] - b[2])
+		return (diff_r + diff_b + diff_g) / 3
+
+	def generate_random_color(self):
+		"""
+		Generate a random color.
+		"""
+		return (random.random(), random.random(), random.random(), 1) #rgba values
 
 	def set_text(self, title, x_label, y_label, x_tick_labels, y_tick_labels):
 		"""
@@ -298,6 +328,7 @@ class PlotGenerator:
 		Generate seed.
 		"""
 		return time.time_ns()
+		
 #Example plots using PlotGenerator
 if __name__ == '__main__':
 	#Create some fake data
