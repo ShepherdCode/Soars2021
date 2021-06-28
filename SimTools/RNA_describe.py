@@ -2,6 +2,7 @@ import traceback
 import argparse
 import re
 import random
+import numpy as np
 
 def assert_imported_RNA_describe():
     return True
@@ -38,7 +39,7 @@ class ORF_RE():
             pos = s.start()+1
             s=self.canonical_re.search(RNA,pos)
         return orfs
-    
+
     def get_codon_number(self, RNA):
         '''
         The function get_codon_numbers returns the number of start
@@ -47,7 +48,7 @@ class ORF_RE():
         and checks if it is the Start/Stop codon
         '''
         start=stop=0
-        
+
         for i in range(len(RNA)-2):
             if((RNA[i]=='C') or (RNA[i]=='G')):
                 continue
@@ -58,7 +59,7 @@ class ORF_RE():
             if((result =='TAA') or (result == 'TAG') or (result == 'TGA')):
                 stop = stop+1
         return ([start,stop])
-    
+
 
     def get_number_bases(self, RNA):
         '''
@@ -75,7 +76,7 @@ class ORF_RE():
                 t+=1
             if(RNA[i] == 'G'):
                 g+=1
-            
+
         return([a,c,t,g])
 
 class ORF_counter():
@@ -126,6 +127,7 @@ class ORF_counter():
                     self.__orf_starts_at__(pos) # ATGX
                 pos=pos-1
     def __orf_ends_at__(self,pos):
+        # Assume we are working right-to-left (backward)
         # to do: keep track of frame to reduce modulus calls
         frame=pos%3
         if self.verbose:
@@ -133,6 +135,7 @@ class ORF_counter():
         self.prev_start[frame]=0
         self.prev_end[frame]=pos
     def __orf_starts_at__(self,pos):
+        # Assume we are working right-to-left (backward)
         # to do: keep track of frame to reduce modulus calls
         frame=pos%3
         if self.verbose:
@@ -150,6 +153,18 @@ class ORF_counter():
             if this_len>self.max_orf_len:
                 self.max_orf_len=this_len
         self.prev_start[frame]=pos
+    def describe_sequences(self,list_of_seq):
+        num_seq = len(list_of_seq)
+        rna_lens = np.zeros(num_seq)
+        orf_lens = np.zeros(num_seq)
+        for i in range(0,num_seq):
+            rna_len = len(list_of_seq[i])
+            rna_lens[i] = rna_len
+            self.set_sequence(list_of_seq[i])
+            orf_len = self.get_max_orf_len()
+            orf_lens[i] = orf_len
+        print ("Average RNA length:",rna_lens.mean())
+        print ("Average ORF length:",orf_lens.mean())
 
 class Random_Base_Oracle():
     def __init__(self,rna_len,debug=False):
@@ -182,7 +197,7 @@ class Random_Base_Oracle():
             trials += 1
             one_seq=self.get_one_sequence()
             oc.set_sequence(one_seq)
-            cds_len = oc.get_max_cds_len() + 3
+            cds_len = oc.get_max_cds_len()
             if cds_len >= CDS_LEN and pc_cnt<goal_per_class:
                 pc_cnt += 1
                 pc_seqs.append(one_seq)

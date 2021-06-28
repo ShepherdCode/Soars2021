@@ -3,7 +3,7 @@
 
 # # ORF recognition by Convolutional/Recurrent
 # 
-# Test CNN+LSTM 32 on simulated RNA of length 64. 
+# Test CNN+GRU 32 on simulated RNA of length 64. 
 # 
 # Use restructured codebase from notebook 105.
 

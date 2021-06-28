@@ -3,11 +3,11 @@
 
 # # ORF recognition by MLP
 # 
-# Test MLP 32 on simulated RNA of length 32. 
+# Test MLP 64 on simulated RNA of length 32. 
 # 
 # Use restructured codebase from notebook ConvRecur_105.
 
-# In[ ]:
+# In[1]:
 
 
 import time 
@@ -15,7 +15,7 @@ t = time.time()
 time.strftime('%Y-%m-%d %H:%M:%S %Z', time.localtime(t))
 
 
-# In[ ]:
+# In[2]:
 
 
 PC_SEQUENCES=32000   # how many protein-coding sequences
@@ -29,7 +29,7 @@ INPUT_SHAPE_2D = (RNA_LEN,ALPHABET,1) # Conv2D needs 3D inputs
 INPUT_SHAPE = (None,RNA_LEN,ALPHABET) # MLP needs batch size holder
 FILTERS = 16   # how many different patterns the model looks for
 CELLS = 16
-NEURONS = 32
+NEURONS = 64
 DROP_RATE = 0.4
 WIDTH = 3   # how wide each pattern is, in bases
 STRIDE_2D = (1,1)  # For Conv2D how far in each direction
@@ -39,7 +39,7 @@ SPLITS=3  # SPLITS=3 means train on 2/3 and validate on 1/3
 FOLDS=3  # train the model this many times (range 1 to SPLITS)
 
 
-# In[ ]:
+# In[3]:
 
 
 import sys
@@ -76,7 +76,7 @@ MODELPATH="BestModel"  # saved on cloud instance and lost after logout
 #MODELPATH=DATAPATH+MODELPATH  # saved on Google Drive but requires login
 
 
-# In[ ]:
+# In[4]:
 
 
 from os import listdir
@@ -106,7 +106,7 @@ mycmap = colors.ListedColormap(['red','blue'])  # list color for label 0 then 1
 np.set_printoptions(precision=2)
 
 
-# In[ ]:
+# In[5]:
 
 
 rbo=Random_Base_Oracle(RNA_LEN,True)
@@ -116,7 +116,7 @@ print("Use",len(pc_all),"PC seqs")
 print("Use",len(nc_all),"NC seqs")
 
 
-# In[ ]:
+# In[6]:
 
 
 # Describe the sequences
@@ -141,7 +141,7 @@ print("NC seqs")
 describe_sequences(nc_all)
 
 
-# In[ ]:
+# In[7]:
 
 
 pc_train=pc_all[:PC_SEQUENCES]
@@ -150,7 +150,7 @@ pc_test=pc_all[PC_SEQUENCES:]
 nc_test=nc_all[NC_SEQUENCES:]
 
 
-# In[ ]:
+# In[8]:
 
 
 # Use code from our SimTools library.
@@ -158,7 +158,7 @@ X,y = prepare_inputs_len_x_alphabet(pc_train,nc_train,ALPHABET) # shuffles
 print("Data ready.")
 
 
-# In[ ]:
+# In[9]:
 
 
 def make_DNN():
@@ -183,7 +183,7 @@ model = make_DNN()
 print(model.summary())
 
 
-# In[ ]:
+# In[10]:
 
 
 from keras.callbacks import ModelCheckpoint
