@@ -2,6 +2,7 @@ import traceback
 import argparse
 import re
 import random
+import numpy as np
 
 def assert_imported_RNA_describe():
     return True
@@ -152,6 +153,18 @@ class ORF_counter():
             if this_len>self.max_orf_len:
                 self.max_orf_len=this_len
         self.prev_start[frame]=pos
+    def describe_sequences(self,list_of_seq):
+        num_seq = len(list_of_seq)
+        rna_lens = np.zeros(num_seq)
+        orf_lens = np.zeros(num_seq)
+        for i in range(0,num_seq):
+            rna_len = len(list_of_seq[i])
+            rna_lens[i] = rna_len
+            self.set_sequence(list_of_seq[i])
+            orf_len = self.get_max_orf_len()
+            orf_lens[i] = orf_len
+        print ("Average RNA length:",rna_lens.mean())
+        print ("Average ORF length:",orf_lens.mean())
 
 class Random_Base_Oracle():
     def __init__(self,rna_len,debug=False):
