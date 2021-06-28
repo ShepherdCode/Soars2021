@@ -9,7 +9,7 @@ class Random_Sequence:
     ORF.
     '''
     def __init__(self):
-        
+        #Bases
         self.BASES = ['A', 'C', 'T','G']
 
         
