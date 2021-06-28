@@ -1,11 +1,9 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# # ORF recognition by MLP
+# # ORF recognition by CNN
 # 
-# Test MLP 32 on simulated RNA of length 32. 
-# 
-# Use restructured codebase from notebook ConvRecur_105.
+# Use variable number of bases between START and STOP. Thus, ncRNA will have its STOP out-of-frame or too close to the START, and pcRNA will have its STOP in-frame and far from the START.
 
 # In[ ]:
 
@@ -18,23 +16,22 @@ time.strftime('%Y-%m-%d %H:%M:%S %Z', time.localtime(t))
 # In[ ]:
 
 
-PC_SEQUENCES=32000   # how many protein-coding sequences
-NC_SEQUENCES=32000   # how many non-coding sequences
+PC_SEQUENCES=64000   # how many protein-coding sequences
+NC_SEQUENCES=64000   # how many non-coding sequences
 PC_TESTS=1000
 NC_TESTS=1000
-RNA_LEN=32            # how long is each sequence
-CDS_LEN=16            # min CDS len to be coding
+RNA_LEN=36            # how long is each sequence
+CDS_LEN=18            # min CDS len to be coding
 ALPHABET=4          # how many different letters are possible
 INPUT_SHAPE_2D = (RNA_LEN,ALPHABET,1) # Conv2D needs 3D inputs
-INPUT_SHAPE = (None,RNA_LEN,ALPHABET) # MLP needs batch size holder
+INPUT_SHAPE = (RNA_LEN,ALPHABET) # Conv1D needs 2D inputs
 FILTERS = 16   # how many different patterns the model looks for
-CELLS = 16
-NEURONS = 32
+NEURONS = 16
 DROP_RATE = 0.4
 WIDTH = 3   # how wide each pattern is, in bases
 STRIDE_2D = (1,1)  # For Conv2D how far in each direction
 STRIDE = 1 # For Conv1D, how far between pattern matches, in bases
-EPOCHS=100  # how many times to train on all the data
+EPOCHS=400  # how many times to train on all the data
 SPLITS=3  # SPLITS=3 means train on 2/3 and validate on 1/3 
 FOLDS=3  # train the model this many times (range 1 to SPLITS)
 
@@ -94,9 +91,7 @@ from sklearn.model_selection import cross_val_score
 from keras.models import Sequential
 from keras.layers import Dense,Embedding,Dropout
 from keras.layers import Conv1D,Conv2D
-from keras.layers import GRU,LSTM
-from keras.layers import Flatten,TimeDistributed
-from keras.layers import MaxPooling1D,MaxPooling2D
+from keras.layers import Flatten,MaxPooling1D,MaxPooling2D
 from keras.losses import BinaryCrossentropy
 # tf.keras.losses.BinaryCrossentropy
 
@@ -165,16 +160,22 @@ def make_DNN():
     print("make_DNN")
     print("input shape:",INPUT_SHAPE)
     dnn = Sequential()
+    #dnn.add(Embedding(input_dim=INPUT_SHAPE,output_dim=INPUT_SHAPE)) 
+    dnn.add(Conv1D(filters=FILTERS,kernel_size=WIDTH,strides=STRIDE,padding="same",
+            input_shape=INPUT_SHAPE))
+    dnn.add(Conv1D(filters=FILTERS,kernel_size=WIDTH,strides=STRIDE,padding="same"))
+    dnn.add(MaxPooling1D())
+    #dnn.add(Conv1D(filters=FILTERS,kernel_size=WIDTH,strides=STRIDE,padding="same"))
+    #dnn.add(Conv1D(filters=FILTERS,kernel_size=WIDTH,strides=STRIDE,padding="same"))
+    #dnn.add(MaxPooling1D())
+    dnn.add(Flatten())
     dnn.add(Dense(NEURONS,activation="sigmoid",dtype=np.float32))   
-    dnn.add(Dense(NEURONS,activation="sigmoid",dtype=np.float32))   
-    dnn.add(Dense(NEURONS,activation="sigmoid",dtype=np.float32))   
-    dnn.add(Dense(NEURONS,activation="sigmoid",dtype=np.float32))   
-    #dnn.add(Dropout(DROP_RATE))
+    dnn.add(Dropout(DROP_RATE))
     dnn.add(Dense(1,activation="sigmoid",dtype=np.float32))   
     dnn.compile(optimizer='adam',
                 loss=BinaryCrossentropy(from_logits=False),
                 metrics=['accuracy'])   # add to default metrics=loss
-    dnn.build(input_shape=INPUT_SHAPE) 
+    dnn.build(input_shape=INPUT_SHAPE)
     #ln_rate = tf.keras.optimizers.Adam(learning_rate = LN_RATE)
     #bc=tf.keras.losses.BinaryCrossentropy(from_logits=False)
     #model.compile(loss=bc, optimizer=ln_rate, metrics=["accuracy"])
@@ -221,13 +222,13 @@ def do_cross_validation(X,y):
             plt.show()
 
 
-# In[11]:
+# In[ ]:
 
 
 do_cross_validation(X,y)
 
 
-# In[12]:
+# In[ ]:
 
 
 from keras.models import load_model
@@ -242,7 +243,7 @@ print("Test on",len(nc_test),"NC seqs")
 print("%s: %.2f%%" % (best_model.metrics_names[1], scores[1]*100))
 
 
-# In[13]:
+# In[ ]:
 
 
 from sklearn.metrics import roc_curve

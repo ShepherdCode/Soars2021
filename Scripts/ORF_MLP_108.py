@@ -3,11 +3,24 @@
 
 # # ORF recognition by MLP
 # 
-# Test MLP 32 on simulated RNA of length 32. 
+# So far, no MLP has exceeded 50% accurcy on any ORF problem.
+# Here, try a variety of things.
 # 
-# Use restructured codebase from notebook ConvRecur_105.
+# RNA length 16, CDS length 8.
+# No luck with 32 neurons or 64 neurons
+# Instead of sigmoid, tried tanh and relu.
+# Instead of 4 layers, tried 1.
+# RNA length 12, CDS length 6.
+# 2 layers of 32 neurons, sigmoid.
+# Even 512 neurons, rectangular or triangular, didn't work.
+# Move INPUT_SHAPE from compile() to first layer parameter. 
+# 
+# This works: All PC='AC'*, all NC='GT'*. 
+# 100% accurate on one epoch with 2 layers of 12 neurons.
+# 
+# Nothing works! Now suspect the data preparation is incorrect. Try trivializing the problem by always adding ATG or TAG.
 
-# In[ ]:
+# In[1]:
 
 
 import time 
@@ -15,7 +28,7 @@ t = time.time()
 time.strftime('%Y-%m-%d %H:%M:%S %Z', time.localtime(t))
 
 
-# In[ ]:
+# In[2]:
 
 
 PC_SEQUENCES=32000   # how many protein-coding sequences
@@ -23,23 +36,23 @@ NC_SEQUENCES=32000   # how many non-coding sequences
 PC_TESTS=1000
 NC_TESTS=1000
 RNA_LEN=32            # how long is each sequence
-CDS_LEN=16            # min CDS len to be coding
+CDS_LEN=16           # min CDS len to be coding
 ALPHABET=4          # how many different letters are possible
 INPUT_SHAPE_2D = (RNA_LEN,ALPHABET,1) # Conv2D needs 3D inputs
-INPUT_SHAPE = (None,RNA_LEN,ALPHABET) # MLP needs batch size holder
+INPUT_SHAPE = (None,RNA_LEN,ALPHABET) # MLP requires batch size None
 FILTERS = 16   # how many different patterns the model looks for
 CELLS = 16
-NEURONS = 32
+NEURONS = 16
 DROP_RATE = 0.4
 WIDTH = 3   # how wide each pattern is, in bases
 STRIDE_2D = (1,1)  # For Conv2D how far in each direction
 STRIDE = 1 # For Conv1D, how far between pattern matches, in bases
-EPOCHS=100  # how many times to train on all the data
+EPOCHS=50  # how many times to train on all the data
 SPLITS=3  # SPLITS=3 means train on 2/3 and validate on 1/3 
 FOLDS=3  # train the model this many times (range 1 to SPLITS)
 
 
-# In[ ]:
+# In[3]:
 
 
 import sys
@@ -76,7 +89,7 @@ MODELPATH="BestModel"  # saved on cloud instance and lost after logout
 #MODELPATH=DATAPATH+MODELPATH  # saved on Google Drive but requires login
 
 
-# In[ ]:
+# In[4]:
 
 
 from os import listdir
@@ -106,7 +119,7 @@ mycmap = colors.ListedColormap(['red','blue'])  # list color for label 0 then 1
 np.set_printoptions(precision=2)
 
 
-# In[ ]:
+# In[5]:
 
 
 rbo=Random_Base_Oracle(RNA_LEN,True)
@@ -116,7 +129,30 @@ print("Use",len(pc_all),"PC seqs")
 print("Use",len(nc_all),"NC seqs")
 
 
-# In[ ]:
+# In[6]:
+
+
+# Make the problem super easy!
+def trivialize_sequences(list_of_seq,option):
+    num_seq = len(list_of_seq)
+    for i in range(0,num_seq):
+        seq = list_of_seq[i]
+        if option==0:
+            list_of_seq[i] = 'TTTTTT'+seq[6:]
+        else:
+            list_of_seq[i] = 'AAAAAA'+seq[6:]
+
+if False:
+    print("Trivialize...")
+    trivialize_sequences(pc_all,1)
+    print("Trivial PC:",pc_all[:5])
+    print("Trivial PC:",pc_all[-5:])
+    trivialize_sequences(nc_all,0)
+    print("Trivial NC:",nc_all[:5])
+    print("Trivial NC:",nc_all[-5:])
+
+
+# In[7]:
 
 
 # Describe the sequences
@@ -141,7 +177,7 @@ print("NC seqs")
 describe_sequences(nc_all)
 
 
-# In[ ]:
+# In[8]:
 
 
 pc_train=pc_all[:PC_SEQUENCES]
@@ -150,7 +186,7 @@ pc_test=pc_all[PC_SEQUENCES:]
 nc_test=nc_all[NC_SEQUENCES:]
 
 
-# In[ ]:
+# In[9]:
 
 
 # Use code from our SimTools library.
@@ -158,14 +194,27 @@ X,y = prepare_inputs_len_x_alphabet(pc_train,nc_train,ALPHABET) # shuffles
 print("Data ready.")
 
 
-# In[ ]:
+# In[10]:
+
+
+print(len(X),"sequences total")
+print(len(X[0]),"bases/sequence")
+print(len(X[0][0]),"dimensions/base")
+#print(X[0])
+print(type(X[0]))
+print(X[0].shape)
+
+
+# In[11]:
 
 
 def make_DNN():
     print("make_DNN")
     print("input shape:",INPUT_SHAPE)
     dnn = Sequential()
-    dnn.add(Dense(NEURONS,activation="sigmoid",dtype=np.float32))   
+    dnn.add(Flatten())
+    dnn.add(Dense(NEURONS,activation="sigmoid",dtype=np.float32,
+                 input_shape=INPUT_SHAPE ))   
     dnn.add(Dense(NEURONS,activation="sigmoid",dtype=np.float32))   
     dnn.add(Dense(NEURONS,activation="sigmoid",dtype=np.float32))   
     dnn.add(Dense(NEURONS,activation="sigmoid",dtype=np.float32))   
@@ -175,15 +224,17 @@ def make_DNN():
                 loss=BinaryCrossentropy(from_logits=False),
                 metrics=['accuracy'])   # add to default metrics=loss
     dnn.build(input_shape=INPUT_SHAPE) 
+    #dnn.build() 
     #ln_rate = tf.keras.optimizers.Adam(learning_rate = LN_RATE)
     #bc=tf.keras.losses.BinaryCrossentropy(from_logits=False)
     #model.compile(loss=bc, optimizer=ln_rate, metrics=["accuracy"])
     return dnn
+
 model = make_DNN()
 print(model.summary())
 
 
-# In[ ]:
+# In[12]:
 
 
 from keras.callbacks import ModelCheckpoint
@@ -221,13 +272,13 @@ def do_cross_validation(X,y):
             plt.show()
 
 
-# In[11]:
+# In[13]:
 
 
 do_cross_validation(X,y)
 
 
-# In[12]:
+# In[14]:
 
 
 from keras.models import load_model
@@ -242,7 +293,7 @@ print("Test on",len(nc_test),"NC seqs")
 print("%s: %.2f%%" % (best_model.metrics_names[1], scores[1]*100))
 
 
-# In[13]:
+# In[15]:
 
 
 from sklearn.metrics import roc_curve
@@ -263,14 +314,14 @@ plt.show()
 print("%s: %.2f%%" %('AUC',bm_auc*100.0))
 
 
-# In[ ]:
+# In[16]:
 
 
 t = time.time()
 time.strftime('%Y-%m-%d %H:%M:%S %Z', time.localtime(t))
 
 
-# In[ ]:
+# In[16]:
 
 
 
