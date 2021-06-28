@@ -7,7 +7,7 @@ class PlotGenerator:
 	"""
 	Class for generating plots using matplotlib.
 	"""
-	def __init__(self, reproducability_seed=None, number_of_colors=16, color_difference_threshold=0.20):
+	def __init__(self, use_random=False, reproducability_seed=None, number_of_colors=16, color_difference_threshold=0.20):
 		"""
 		Initialize self.
 		Sets all settables to their default values.
@@ -26,50 +26,13 @@ class PlotGenerator:
 		self.__y_label = ""
 		self.__x_tick_labels = None
 		self.__y_tick_labels = None
+		self.__COLORS = ['r', 'b', 'g', 'y', 'm', 'c'] #Use matplotlib's "Base Colors"
 
-		if reproducability_seed != None:
-			seed = reproducability_seed
-		else:
-			seed = self.generate_seed()
-		random.seed(seed)
-		print('Seed:', seed, '(copy seed to reproduce colors)')
-
-		self.__COLORS = self.generate_colors(number_of_colors, color_difference_threshold)
-
-	def generate_colors(self, number_of_colors, difference_threshold):
-		"""
-		Generate random colors.
-		Filter out too similar colors.
-		"""
-		n = 0
-		colors = []
-		while n < number_of_colors:
-			new_color = self.generate_random_color()
-			is_different_enough = True
-			for color in colors:
-				if self.difference_between_colors(color, new_color) < difference_threshold:
-					is_different_enough = False
-					break
-			if is_different_enough:
-				colors.append(new_color)
-				n += 1
-		return colors
-
-	def difference_between_colors(self, a, b):
-		"""
-		Get the difference between two colors.
-		#TODO: determine if math if correct
-		"""
-		diff_r = abs(a[0] - b[0])
-		diff_g = abs(a[1] - b[1])
-		diff_b = abs(a[2] - b[2])
-		return (diff_r + diff_b + diff_g) / 3
-
-	def generate_random_color(self):
-		"""
-		Generate a random color.
-		"""
-		return (random.random(), random.random(), random.random(), 1) #rgba values
+		if use_random:
+			seed = reproducability_seed if reproducability_seed != None else self.generate_seed()
+			random.seed(seed)
+			print('Seed:', seed)
+			self.__COLORS = self.generate_colors(number_of_colors, color_difference_threshold)
 
 	def set_text(self, title, x_label, y_label, x_tick_labels, y_tick_labels):
 		"""
@@ -319,9 +282,45 @@ class PlotGenerator:
 
 	def select_color(self, index):
 		"""
-		Select a xkcd color. 
+		Select a color. 
 		"""
 		return self.__COLORS[index]
+
+	def generate_colors(self, number_of_colors, difference_threshold):
+		"""
+		Generate random colors.
+		Filter out too similar of colors.
+		"""
+		n = 0
+		colors = []
+		while n < number_of_colors:
+			new_color = self.generate_random_color()
+			is_different_enough = True
+			for color in colors:
+				if self.difference_between_colors(color, new_color) < difference_threshold:
+					is_different_enough = False
+					break
+			if is_different_enough:
+				colors.append(new_color)
+				n += 1
+		return colors
+
+	def difference_between_colors(self, a, b):
+		"""
+		Get the difference between two colors.
+		#TODO: determine if math if correct
+		"""
+		diff_r = abs(a[0] - b[0])
+		diff_g = abs(a[1] - b[1])
+		diff_b = abs(a[2] - b[2])
+		return (diff_r + diff_b + diff_g) / 3
+
+	def generate_random_color(self):
+		"""
+		Generate a random color.
+		Alpha is always 1.
+		"""
+		return (random.random(), random.random(), random.random(), 1) #rgba values
 
 	def generate_seed(self):
 		"""
