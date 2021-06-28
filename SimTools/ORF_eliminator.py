@@ -1,15 +1,64 @@
-from RNA_describe import RNA_describer
-from RNA_describe import ORF_counter
-from RNA_describe import ORF_RE
+import re
 import math
 import random
 import argparse
 
+class Random_Sequence:
+    '''
+    Creates the random sequence of given or default length. May/Maynot have
+    ORF.
+    '''
+    def __init__(self):
+        
+        self.BASES = ['A', 'C', 'T','G']
 
-'''
-This class constructs the RNA sequence without ORF length
+        
+    
+    def generate_sequence(self,length_of_sequence,no_of_sequence):
+        list = []
+        counter =0
+        while (counter<no_of_sequence):
+            sequence = ''.join(random.choice(self.BASES) for i in range(length_of_sequence))
+            list.append( sequence)
+            counter+=1
+        return list
+    def generate_sequence_withORF(self, length_of_sequence, no_of_sequence, min_length):
+        list = []
+        counter =0
+        orf_search = ORF_RE()
+        while (counter<no_of_sequence):
+            sequence = ''.join(random.choice(self.BASES) for i in range(length_of_sequence))
+            if(orf_search.get_three_lengths(sequence)[1]<min_length):
+                continue
+            list.append( sequence)
+            counter+=1
+        return list
+    
 
-'''
+class ORF_RE():
+    '''Regular Expressions'''
+    def __init__(self):
+        canonical='ATG((?!TAA|TAG|TGA)[ACGT]{3})*(TAA|TAG|TGA)'
+        self.canonical_re=re.compile(canonical)
+    def get_three_lengths(self,RNA):
+        '''Return length of 5'UTR, longest ORF, and 3'UTR.'''
+        utr5_len=0
+        orf_len=0
+        s=self.canonical_re.search(RNA)
+        while s is not None:
+            this_len=s.end()-s.start()-3 # exclude the stop codon
+            if this_len>orf_len:
+                orf_len=this_len
+                utr5_len=s.start()
+            pos = s.start()+1
+            s=self.canonical_re.search(RNA,pos)
+        if orf_len>0:
+            utr3_len=len(RNA)-utr5_len-(orf_len+3)
+        else: # no orf? then each UTR is half
+            utr5_len=len(RNA)//2
+            utr3_len=len(RNA)-utr5_len
+        return (utr5_len,orf_len,utr3_len)
+    
 class ORF_eliminator:
     
         
@@ -55,16 +104,13 @@ class ORF_eliminator:
         counter =0
         
         while(orf!=0):
-            #print('Iteration: ' + str(counter))
-           # print(RNA)
-            #counter+=1 #Counts the iteration to see how many loops occured to reach destination
-            #print('ORF found!')
+            
             temp = list(RNA)
             temp[utr5+orf] = random.choice(choices)
             #randonNumber get the random location to inject {T}
-            #This way the occurance of T isnt tampered .
+            #This way the occurance of T isnt changed .
             
-            randomNumber = random.randint(0,len(RNA))
+            randomNumber = random.randint(0,len(RNA)-1)
             temp[randomNumber] = 'T'
             new_RNA = "".join(temp)
             RNA = new_RNA
@@ -75,7 +121,7 @@ class ORF_eliminator:
        # print("It took " + str(counter)+ " loops to eliminate ORF")    
         return(RNA)
         
- #REFACTORED TILL HERE ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^       
+      
         
     '''
         METHOD2:
@@ -85,10 +131,9 @@ class ORF_eliminator:
         
     def eliminate_ORF2(self):
         
-        lengths= self.get_coordinates();
-        #return lengths
-        #Working for coordinates
-        orf_length = 3
+        
+       
+        orf_length = 3#randomly assigning number to get into the loop
         while(orf_length!=0):
             lengths= self.get_coordinates();
             orf_length = lengths[1]
@@ -101,7 +146,7 @@ class ORF_eliminator:
             pos= math.ceil(no_of_codons/2)
             temp_codons = random.choice(STOP_CODONS)
             temp_RNA = self.RNA
-        #Determines the exact position of codons.
+        #Determines the exact position of where the STOP codon is to be injected.
             pointer = orf_starter + (pos-1)*3
             temp_RNA = temp_RNA[:pointer] + temp_codons + temp_RNA[pointer+3:]
             self.set_RNA(temp_RNA)
