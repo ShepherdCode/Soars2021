@@ -2,6 +2,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 import random
 import time
+import datetime
+import math
 
 class PlotGenerator:
 	"""
@@ -297,7 +299,7 @@ class PlotGenerator:
 			new_color = self.generate_random_color()
 			is_different_enough = True
 			for color in colors:
-				if self.difference_between_colors(color, new_color) < difference_threshold:
+				if self.color_distance(color, new_color) < difference_threshold:
 					is_different_enough = False
 					break
 			if is_different_enough:
@@ -305,15 +307,16 @@ class PlotGenerator:
 				n += 1
 		return colors
 
-	def difference_between_colors(self, a, b):
+	def color_distance(self, a, b):
 		"""
-		Get the difference between two colors.
-		#TODO: determine if math if correct
+		Get the distance between two colors.
+		Used to determine similarity.
+		Note: not the best approach. 
 		"""
-		diff_r = abs(a[0] - b[0])
-		diff_g = abs(a[1] - b[1])
-		diff_b = abs(a[2] - b[2])
-		return (diff_r + diff_b + diff_g) / 3
+		diff_r = a[0] - b[0]
+		diff_g = a[1] - b[1]
+		diff_b = a[2] - b[2]
+		return math.sqrt(diff_r**2+diff_g**2+diff_b**2)
 
 	def generate_random_color(self):
 		"""
@@ -326,8 +329,6 @@ class PlotGenerator:
 		"""
 		Generate seed.
 		"""
-		import datetime
-
 		ddate = datetime.datetime.now().date()
 		year = ddate.strftime('%Y')
 		month = ddate.strftime('%m')
@@ -349,10 +350,6 @@ class PlotGenerator:
 		
 #Example plots using PlotGenerator
 if __name__ == '__main__':
-	for i in range(0, 10):
-		pg = PlotGenerator()
-		print(pg.generate_seed())
-
 	#Create some fake data
 	line_plot_data_x = np.linspace(0, 5, 100)
 	line_plot_data_y_a = line_plot_data_x**2
@@ -381,7 +378,7 @@ if __name__ == '__main__':
 			heatmap_data[i][j] = i * j
 
 	#Set up the plot generator
-	pg = PlotGenerator()
+	pg = PlotGenerator(use_random=True)
 	pg.set_text_options(45, 'right', 0, 'center')
 	pg.set_text('Title', 'X', 'Y', ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j'], None)
 
