@@ -326,10 +326,33 @@ class PlotGenerator:
 		"""
 		Generate seed.
 		"""
-		return time.time_ns()
+		import datetime
+
+		ddate = datetime.datetime.now().date()
+		year = ddate.strftime('%Y')
+		month = ddate.strftime('%m')
+		day = ddate.strftime('%d')
+
+		date_str = str(month) + str(day) + str(year)
+		date_int = int(date_str)
+
+		dtime = datetime.datetime.now().time()
+		hour = dtime.hour
+		minute = dtime.minute
+		second = dtime.second
+		time_str = str(hour) + str(minute) + str(second)
+		time_int = int(time_str)
+
+		nanoseconds_since_epoch = time.time_ns()
+
+		return  (nanoseconds_since_epoch * date_int) % time_int
 		
 #Example plots using PlotGenerator
 if __name__ == '__main__':
+	for i in range(0, 10):
+		pg = PlotGenerator()
+		print(pg.generate_seed())
+
 	#Create some fake data
 	line_plot_data_x = np.linspace(0, 5, 100)
 	line_plot_data_y_a = line_plot_data_x**2
