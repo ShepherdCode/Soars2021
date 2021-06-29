@@ -29,8 +29,7 @@ class PlotGenerator:
 		self.__x_tick_labels = None
 		self.__y_tick_labels = None
 		self.__COLORS = ['r', 'b', 'g', 'y', 'm', 'c'] #Use matplotlib's "Base Colors"
-
-		if use_random:
+		if use_random: #Use random but non-similar colors 
 			seed = reproducability_seed if reproducability_seed != None else self.generate_seed()
 			random.seed(seed)
 			print('Seed:', seed)
@@ -115,6 +114,7 @@ class PlotGenerator:
 
 	def __gen_bar_plot_object(self, data, color, plot_num, num_plots):
 		"""
+		Creates a bar plot object.
 		Used in bar_plot function.
 		"""
 		#Note: assertions all handled earlier in bar_plot
@@ -165,6 +165,7 @@ class PlotGenerator:
 
 	def __gen_box_plot_object(self, data, color, plot_num, num_plots, showfliers):
 		"""
+		Creates a box plot object.
 		Used in box_plot function.
 		"""
 		positions = np.arange(plot_num, len(data) * num_plots, num_plots)
@@ -274,7 +275,7 @@ class PlotGenerator:
 
 	def combine_data_set_names_with_x_tick_labels(self, data_set_names):
 		"""
-		Add the names of data sets to each x tick label.
+		Concatenate each data set name with each x tick label.
 		"""
 		new_x_tick_labels = []
 		for label in self.__x_tick_labels:
@@ -284,7 +285,7 @@ class PlotGenerator:
 
 	def select_color(self, index):
 		"""
-		Select a color. 
+		Select a color.
 		"""
 		return self.__COLORS[index]
 
@@ -313,10 +314,10 @@ class PlotGenerator:
 		Used to determine similarity.
 		Note: not the best approach. 
 		"""
-		diff_r = a[0] - b[0]
-		diff_g = a[1] - b[1]
-		diff_b = a[2] - b[2]
-		return math.sqrt(diff_r**2+diff_g**2+diff_b**2)
+		r = a[0] - b[0]
+		g = a[1] - b[1]
+		b = a[2] - b[2]
+		return math.sqrt(r ** 2 + g ** 2 + b ** 2)
 
 	def generate_random_color(self):
 		"""
@@ -333,19 +334,15 @@ class PlotGenerator:
 		year = ddate.strftime('%Y')
 		month = ddate.strftime('%m')
 		day = ddate.strftime('%d')
-
 		date_str = str(month) + str(day) + str(year)
 		date_int = int(date_str)
-
 		dtime = datetime.datetime.now().time()
 		hour = dtime.hour
 		minute = dtime.minute
 		second = dtime.second
 		time_str = str(hour) + str(minute) + str(second)
 		time_int = int(time_str)
-
 		nanoseconds_since_epoch = time.time_ns()
-
 		return  (nanoseconds_since_epoch * date_int) % time_int
 		
 #Example plots using PlotGenerator
