@@ -280,7 +280,7 @@ class PlotGenerator:
 		new_x_tick_labels = []
 		for label in self.__x_tick_labels:
 			for name in data_set_names:
-				new_x_tick_labels.append(label + f'({name})')
+				new_x_tick_labels.append(label + f' ({name})')
 		return new_x_tick_labels
 
 	def select_color(self, index):
