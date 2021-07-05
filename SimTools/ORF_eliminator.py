@@ -3,7 +3,7 @@ import math
 import random
 import argparse
 
-class Random_Sequence:
+class Random_Sequence():
     '''
     Creates the random sequence of given or default length. May/Maynot have
     ORF.
@@ -59,7 +59,7 @@ class ORF_RE():
             utr3_len=len(RNA)-utr5_len
         return (utr5_len,orf_len,utr3_len)
     
-class ORF_eliminator:
+class ORF_eliminator():
     
         
     '''
@@ -92,18 +92,18 @@ class ORF_eliminator:
         place. This will make the number of 'T' constant.
 ------------------------------------------------------------------------------
     '''
-    def eliminate_ORF(self, RNA):
+    def eliminate_ORF(self, RNA,CDS_length):
         
         #choices defines the possible letters that could replace 'T'
         choices = ['A','C','G']
-        lengths = self.get_coordinates(RNA) #Gets the length of 5'UTF, ORF, 3'UTF
+        lengths = self.get_coordinates(self, RNA) #Gets the length of 5'UTF, ORF, 3'UTF
         #lengths is the list of three length. Hence, indices are used for referral.
         utr5 = lengths[0]
         orf = lengths[1]
         utr3 = lengths[2]
         counter =0
         
-        while(orf!=0):
+        while(orf>CDS_length):
             
             temp = list(RNA)
             temp[utr5+orf] = random.choice(choices)
