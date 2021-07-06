@@ -96,7 +96,7 @@ class ORF_eliminator():
         
         #choices defines the possible letters that could replace 'T'
         choices = ['A','C','G']
-        lengths = self.get_coordinates(self, RNA) #Gets the length of 5'UTF, ORF, 3'UTF
+        lengths = self.get_coordinates(RNA) #Gets the length of 5'UTF, ORF, 3'UTF
         #lengths is the list of three length. Hence, indices are used for referral.
         utr5 = lengths[0]
         orf = lengths[1]
