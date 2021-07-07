@@ -6,6 +6,19 @@ import re
 def assert_imported_GenCode_preprocess():
     return True
 
+'''
+Parses an uncompressed GFF3 file from GenCode.
+Makes a list of transcript IDs that probably contain an ORF
+based on various English-language indicators in the annotation file.
+For ease of use within a Python notebook running on CoLab,
+this writes a Python file that loads a dict.
+
+Deprecated.
+This logic is messy and not 100% accurate.
+Instead of this, use GenCodeTools to parse the FASTA file.
+The best ORF indicator is a defline with 5'UTR and 3'UTR positions.
+'''
+
 class GenCode_Preprocess():
     def __init__(self,debug=False):
         self.debug=debug
