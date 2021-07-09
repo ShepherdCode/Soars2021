@@ -1,16 +1,11 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# # ORF recognition by Convolutional/Recurrent
+# # ORF recognition by CNN
 # 
-# So far CNN+LSTM 64 overfits the 128 base RNA problem.
-# That was using 32K samples/class. Here, try more samples. 
-# 
-# Also, build the model without specifying INPUT_SIZE.
-# 
-# 
+# Use variable number of bases between START and STOP. Thus, ncRNA will have its STOP out-of-frame or too close to the START, and pcRNA will have its STOP in-frame and far from the START.
 
-# In[1]:
+# In[15]:
 
 
 import time 
@@ -18,36 +13,30 @@ t = time.time()
 time.strftime('%Y-%m-%d %H:%M:%S %Z', time.localtime(t))
 
 
-# In[2]:
+# In[16]:
 
 
-#Input
 PC_SEQUENCES=32000   # how many protein-coding sequences
 NC_SEQUENCES=32000   # how many non-coding sequences
 PC_TESTS=1000
 NC_TESTS=1000
-RNA_LEN=128            # how long is each sequence
-CDS_LEN=64            # min CDS len to be coding
+RNA_LEN=32            # how long is each sequence
+CDS_LEN=16            # min CDS len to be coding
 ALPHABET=4          # how many different letters are possible
 INPUT_SHAPE_2D = (RNA_LEN,ALPHABET,1) # Conv2D needs 3D inputs
 INPUT_SHAPE = (RNA_LEN,ALPHABET) # Conv1D needs 2D inputs
-
-#Model
 FILTERS = 16   # how many different patterns the model looks for
-CELLS = 128 #Used in LSTM layer(s)
-NEURONS = 128 #Used in Dense layer(s)
-DROP_RATE = 0.2
+NEURONS = 16
+DROP_RATE = 0.4
 WIDTH = 3   # how wide each pattern is, in bases
 STRIDE_2D = (1,1)  # For Conv2D how far in each direction
 STRIDE = 1 # For Conv1D, how far between pattern matches, in bases
-
-#Training
-EPOCHS=25  # how many times to train on all the data
+EPOCHS=500  # how many times to train on all the data
 SPLITS=3  # SPLITS=3 means train on 2/3 and validate on 1/3 
 FOLDS=3  # train the model this many times (range 1 to SPLITS)
 
 
-# In[3]:
+# In[17]:
 
 
 import sys
@@ -84,7 +73,7 @@ MODELPATH="BestModel"  # saved on cloud instance and lost after logout
 #MODELPATH=DATAPATH+MODELPATH  # saved on Google Drive but requires login
 
 
-# In[4]:
+# In[18]:
 
 
 from os import listdir
@@ -102,9 +91,7 @@ from sklearn.model_selection import cross_val_score
 from keras.models import Sequential
 from keras.layers import Dense,Embedding,Dropout
 from keras.layers import Conv1D,Conv2D
-from keras.layers import GRU,LSTM
-from keras.layers import Flatten,TimeDistributed
-from keras.layers import MaxPooling1D,MaxPooling2D
+from keras.layers import Flatten,MaxPooling1D,MaxPooling2D
 from keras.losses import BinaryCrossentropy
 # tf.keras.losses.BinaryCrossentropy
 
@@ -114,7 +101,7 @@ mycmap = colors.ListedColormap(['red','blue'])  # list color for label 0 then 1
 np.set_printoptions(precision=2)
 
 
-# In[5]:
+# In[19]:
 
 
 rbo=Random_Base_Oracle(RNA_LEN,True)
@@ -124,7 +111,7 @@ print("Use",len(pc_all),"PC seqs")
 print("Use",len(nc_all),"NC seqs")
 
 
-# In[6]:
+# In[20]:
 
 
 # Describe the sequences
@@ -149,7 +136,7 @@ print("NC seqs")
 describe_sequences(nc_all)
 
 
-# In[7]:
+# In[21]:
 
 
 pc_train=pc_all[:PC_SEQUENCES]
@@ -158,7 +145,7 @@ pc_test=pc_all[PC_SEQUENCES:]
 nc_test=nc_all[NC_SEQUENCES:]
 
 
-# In[8]:
+# In[22]:
 
 
 # Use code from our SimTools library.
@@ -166,7 +153,7 @@ X,y = prepare_inputs_len_x_alphabet(pc_train,nc_train,ALPHABET) # shuffles
 print("Data ready.")
 
 
-# In[9]:
+# In[23]:
 
 
 def make_DNN():
@@ -181,17 +168,14 @@ def make_DNN():
     #dnn.add(Conv1D(filters=FILTERS,kernel_size=WIDTH,strides=STRIDE,padding="same"))
     #dnn.add(Conv1D(filters=FILTERS,kernel_size=WIDTH,strides=STRIDE,padding="same"))
     #dnn.add(MaxPooling1D())
-    #dnn.add(TimeDistributed(Flatten()))
-    dnn.add(LSTM(CELLS,return_sequences=True))
-    dnn.add(LSTM(CELLS,return_sequences=False))
+    dnn.add(Flatten())
     dnn.add(Dense(NEURONS,activation="sigmoid",dtype=np.float32))   
     dnn.add(Dropout(DROP_RATE))
     dnn.add(Dense(1,activation="sigmoid",dtype=np.float32))   
     dnn.compile(optimizer='adam',
                 loss=BinaryCrossentropy(from_logits=False),
                 metrics=['accuracy'])   # add to default metrics=loss
-    #dnn.build(input_shape=INPUT_SHAPE)   
-    dnn.build()   
+    dnn.build(input_shape=INPUT_SHAPE)
     #ln_rate = tf.keras.optimizers.Adam(learning_rate = LN_RATE)
     #bc=tf.keras.losses.BinaryCrossentropy(from_logits=False)
     #model.compile(loss=bc, optimizer=ln_rate, metrics=["accuracy"])
@@ -200,7 +184,7 @@ model = make_DNN()
 print(model.summary())
 
 
-# In[10]:
+# In[24]:
 
 
 from keras.callbacks import ModelCheckpoint
@@ -238,13 +222,13 @@ def do_cross_validation(X,y):
             plt.show()
 
 
-# In[11]:
+# In[25]:
 
 
 do_cross_validation(X,y)
 
 
-# In[12]:
+# In[26]:
 
 
 from keras.models import load_model
@@ -259,7 +243,7 @@ print("Test on",len(nc_test),"NC seqs")
 print("%s: %.2f%%" % (best_model.metrics_names[1], scores[1]*100))
 
 
-# In[13]:
+# In[27]:
 
 
 from sklearn.metrics import roc_curve
@@ -280,9 +264,15 @@ plt.show()
 print("%s: %.2f%%" %('AUC',bm_auc*100.0))
 
 
-# In[14]:
+# In[28]:
 
 
 t = time.time()
 time.strftime('%Y-%m-%d %H:%M:%S %Z', time.localtime(t))
+
+
+# In[28]:
+
+
+
 
