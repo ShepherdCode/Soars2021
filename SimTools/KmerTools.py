@@ -71,7 +71,7 @@ class KmerTools():
     def harvest_counts_from_K(self,counts,max_K):
         '''
         Implement the Harvester algorithm.
-        This is more efficient that counting K-mers for every K.
+        This is more efficient than update_count_upto_K().
         Given a data structure containing counts for K=max_K only,
         backfill the counts for all smaller values of K.
         Call this after calling update_count_one_K(tail=True)
