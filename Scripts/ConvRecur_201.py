@@ -2,11 +2,7 @@
 # coding: utf-8
 
 # # ORF recognition by Convolutional/Recurrent
-# 
-# So far CNN+LSTM 64 overfits the 128 base RNA problem.
-# That was using 32K samples/class. Here, try more samples. 
-# 
-# Also, build the model without specifying INPUT_SIZE.
+# Attempting to train the model on simulated RNA sequences of length 256.
 # 
 # 
 
@@ -26,25 +22,26 @@ PC_SEQUENCES=32000   # how many protein-coding sequences
 NC_SEQUENCES=32000   # how many non-coding sequences
 PC_TESTS=1000
 NC_TESTS=1000
-RNA_LEN=128            # how long is each sequence
-CDS_LEN=64            # min CDS len to be coding
+RNA_LEN=256            # how long is each sequence
+CDS_LEN=128            # min CDS len to be coding
 ALPHABET=4          # how many different letters are possible
 INPUT_SHAPE_2D = (RNA_LEN,ALPHABET,1) # Conv2D needs 3D inputs
 INPUT_SHAPE = (RNA_LEN,ALPHABET) # Conv1D needs 2D inputs
 
 #Model
 FILTERS = 16   # how many different patterns the model looks for
-CELLS = 128 #Used in LSTM layer(s)
-NEURONS = 128 #Used in Dense layer(s)
-DROP_RATE = 0.2
+CELLS = 64 #Used in LSTM layer(s)
+NEURONS = 64 #Used in Dense layer(s)
+DROP_RATE = 0.1
 WIDTH = 3   # how wide each pattern is, in bases
 STRIDE_2D = (1,1)  # For Conv2D how far in each direction
 STRIDE = 1 # For Conv1D, how far between pattern matches, in bases
+ACTIVATION = 'relu'
 
 #Training
 EPOCHS=25  # how many times to train on all the data
 SPLITS=3  # SPLITS=3 means train on 2/3 and validate on 1/3 
-FOLDS=3  # train the model this many times (range 1 to SPLITS)
+FOLDS=1  # train the model this many times (range 1 to SPLITS)
 
 
 # In[3]:
@@ -118,7 +115,7 @@ np.set_printoptions(precision=2)
 
 
 rbo=Random_Base_Oracle(RNA_LEN,True)
-pc_all,nc_all = rbo.get_partitioned_sequences(CDS_LEN,10) # just testing
+#pc_all,nc_all = rbo.get_partitioned_sequences(CDS_LEN,10) # just testing
 pc_all,nc_all = rbo.get_partitioned_sequences(CDS_LEN,PC_SEQUENCES+PC_TESTS)
 print("Use",len(pc_all),"PC seqs")
 print("Use",len(nc_all),"NC seqs")
@@ -173,29 +170,34 @@ def make_DNN():
     print("make_DNN")
     print("input shape:",INPUT_SHAPE)
     dnn = Sequential()
-    #dnn.add(Embedding(input_dim=INPUT_SHAPE,output_dim=INPUT_SHAPE)) 
+
     dnn.add(Conv1D(filters=FILTERS,kernel_size=WIDTH,strides=STRIDE,padding="same",
             input_shape=INPUT_SHAPE))
     dnn.add(Conv1D(filters=FILTERS,kernel_size=WIDTH,strides=STRIDE,padding="same"))
     dnn.add(MaxPooling1D())
-    #dnn.add(Conv1D(filters=FILTERS,kernel_size=WIDTH,strides=STRIDE,padding="same"))
-    #dnn.add(Conv1D(filters=FILTERS,kernel_size=WIDTH,strides=STRIDE,padding="same"))
-    #dnn.add(MaxPooling1D())
-    #dnn.add(TimeDistributed(Flatten()))
+
+    dnn.add(Conv1D(filters=FILTERS,kernel_size=WIDTH,strides=STRIDE,padding="same"))
+    dnn.add(Conv1D(filters=FILTERS,kernel_size=WIDTH,strides=STRIDE,padding="same")) 
+    dnn.add(MaxPooling1D())
+
     dnn.add(LSTM(CELLS,return_sequences=True))
     dnn.add(LSTM(CELLS,return_sequences=False))
-    dnn.add(Dense(NEURONS,activation="sigmoid",dtype=np.float32))   
+
+    dnn.add(Dense(NEURONS,activation=ACTIVATION,dtype=np.float32))
+    dnn.add(Dense(NEURONS,activation=ACTIVATION,dtype=np.float32))  
+
     dnn.add(Dropout(DROP_RATE))
-    dnn.add(Dense(1,activation="sigmoid",dtype=np.float32))   
+
+    dnn.add(Dense(1,activation=ACTIVATION,dtype=np.float32))  
+
     dnn.compile(optimizer='adam',
                 loss=BinaryCrossentropy(from_logits=False),
                 metrics=['accuracy'])   # add to default metrics=loss
-    #dnn.build(input_shape=INPUT_SHAPE)   
-    dnn.build()   
-    #ln_rate = tf.keras.optimizers.Adam(learning_rate = LN_RATE)
-    #bc=tf.keras.losses.BinaryCrossentropy(from_logits=False)
-    #model.compile(loss=bc, optimizer=ln_rate, metrics=["accuracy"])
+
+    dnn.build() 
+
     return dnn
+
 model = make_DNN()
 print(model.summary())
 

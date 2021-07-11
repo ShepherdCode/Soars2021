@@ -51,7 +51,9 @@ class KmerTools():
         padded=rna+padding
         for i in range(0,L-K+1):
             kmer=padded[i:i+K]
-            counts[kmer] += 1
+            # This test guards against unexpected bases like N.
+            if kmer in counts.keys():
+                counts[kmer] += 1
         if tail and K>1:
             # For Harvester algorithm, last letters are special case.
             # Example: for K=3, analyze the last two letters
@@ -59,7 +61,8 @@ class KmerTools():
             for start_pos in range(L-K+1,L):
                 for end_pos in range(start_pos+1,L+1):
                     kmer=rna[start_pos:end_pos]
-                    counts[kmer] += 1
+                    if kmer in counts.keys():
+                        counts[kmer] += 1
         return counts
     def update_count_upto_K(self,counts,max_K,sample,tail=False):
         '''
@@ -71,7 +74,7 @@ class KmerTools():
     def harvest_counts_from_K(self,counts,max_K):
         '''
         Implement the Harvester algorithm.
-        This is more efficient that counting K-mers for every K.
+        This is more efficient than update_count_upto_K().
         Given a data structure containing counts for K=max_K only,
         backfill the counts for all smaller values of K.
         Call this after calling update_count_one_K(tail=True)
