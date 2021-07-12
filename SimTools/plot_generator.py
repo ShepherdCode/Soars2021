@@ -28,6 +28,7 @@ class PlotGenerator:
 		self.__y_label = ""
 		self.__x_tick_labels = None
 		self.__y_tick_labels = None
+		self.__x_tick_label_font_size = 12
 		self.__COLORS = ['r', 'b', 'g', 'y', 'm', 'c'] #Use matplotlib's "Base Colors"
 		if use_random: #Use random but non-similar colors 
 			seed = reproducability_seed if reproducability_seed != None else self.generate_seed()
@@ -49,7 +50,7 @@ class PlotGenerator:
 		self.__x_tick_labels = x_tick_labels
 		self.__y_tick_labels = y_tick_labels
 
-	def set_text_options(self, x_tick_label_rotation, x_tick_label_horizontal_alignment, y_tick_label_rotation, y_tick_label_horizontal_alignment):
+	def set_text_options(self, x_tick_label_rotation, x_tick_label_horizontal_alignment, y_tick_label_rotation, y_tick_label_horizontal_alignment, x_tick_label_font_size):
 		"""
 		Sets the title and label text options of to-be-generated plots.
 		"""
@@ -57,6 +58,7 @@ class PlotGenerator:
 		self.__x_tick_label_horizontal_alignment = x_tick_label_horizontal_alignment
 		self.__y_tick_label_rotation = y_tick_label_rotation
 		self.__y_tick_label_horizontal_alignment = y_tick_label_horizontal_alignment
+		self.__x_tick_label_font_size = x_tick_label_font_size
 
 	def set_axis_options(self, x_scale, x_base, y_scale, y_base):
 		"""
@@ -106,7 +108,7 @@ class PlotGenerator:
 		if self.__x_tick_labels != None:
 			new_x_tick_labels = self.combine_data_set_names_with_x_tick_labels(data_set_names)
 			x_ticks = np.arange(0, NUM_SETS * len(data_sets[0]), 1)
-			plt.xticks(x_ticks, labels=new_x_tick_labels, rotation=self.__x_tick_label_rotation, ha=self.__x_tick_label_horizontal_alignment)
+			plt.xticks(x_ticks, labels=new_x_tick_labels, rotation=self.__x_tick_label_rotation, ha=self.__x_tick_label_horizontal_alignment, fontsize=self.__x_tick_label_font_size)
 
 		plt.legend(data_set_names, loc='upper left')
 
@@ -154,7 +156,7 @@ class PlotGenerator:
 		if self.__x_tick_labels != None:
 			new_x_tick_labels = self.combine_data_set_names_with_x_tick_labels(data_set_names)
 			x_ticks = np.arange(0, NUM_SETS * len(data_sets[0]), 1)
-			plt.xticks(x_ticks, labels=new_x_tick_labels, rotation=self.__x_tick_label_rotation, ha=self.__x_tick_label_horizontal_alignment)
+			plt.xticks(x_ticks, labels=new_x_tick_labels, rotation=self.__x_tick_label_rotation, ha=self.__x_tick_label_horizontal_alignment, fontsize=self.__x_tick_label_font_size)
 
 		for_legend = []
 		for box in boxes:
@@ -243,7 +245,7 @@ class PlotGenerator:
 
 		if self.__x_tick_labels != None:
 			assert len(self.__x_tick_labels) == len(data_sets[0])
-			plt.xticks(np.arange(len(data_sets[0])), self.__x_tick_labels, rotation=self.__x_tick_label_rotation, ha=self.__x_tick_label_horizontal_alignment)
+			plt.xticks(np.arange(len(data_sets[0])), self.__x_tick_labels, rotation=self.__x_tick_label_rotation, ha=self.__x_tick_label_horizontal_alignment, fontsize=self.__x_tick_label_font_size)
 		if self.__y_tick_labels != None:
 			assert len(self.__y_tick_labels) == NUM_SETS
 			plt.yticks(np.arange(len(self.__y_tick_labels)), self.__y_tick_labels, rotation=self.__y_tick_label_rotation, ha=self.__y_tick_label_horizontal_alignment)
@@ -376,7 +378,7 @@ if __name__ == '__main__':
 
 	#Set up the plot generator
 	pg = PlotGenerator(use_random=True)
-	pg.set_text_options(45, 'right', 0, 'center')
+	pg.set_text_options(45, 'right', 0, 'center', 8)
 	pg.set_text('Title', 'X', 'Y', ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j'], None)
 
 	#Plot the line plot data
