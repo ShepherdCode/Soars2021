@@ -102,5 +102,8 @@ class KmerTools():
                     tot += counts[kmer]
             for kmer in counts.keys():
                 if len(kmer)==k:
-                    freqs[kmer] = 1.0*counts[kmer]/tot
+                    if tot == 0:
+                        freqs[kmer] = 0.0
+                    else:
+                        freqs[kmer] = 1.0*counts[kmer]/tot
         return freqs
