@@ -29,12 +29,18 @@ class PlotGenerator:
 		self.__x_tick_labels = None
 		self.__y_tick_labels = None
 		self.__x_tick_label_font_size = 12
+		self.__figure_width = 6.4
+		self.__figure_height = 4.8
 		self.__COLORS = ['r', 'b', 'g', 'y', 'm', 'c'] #Use matplotlib's "Base Colors"
 		if use_random: #Use random but non-similar colors 
 			seed = reproducability_seed if reproducability_seed != None else self.generate_seed()
 			random.seed(seed)
 			print('Seed:', seed)
 			self.__COLORS = self.generate_colors(number_of_colors, color_difference_threshold)
+
+	def set_figure_options(self, width=6.4, height=4.8):
+		self.__figure_width = width
+		self.__figure_height = height
 
 	def set_text(self, title, x_label, y_label, x_tick_labels, y_tick_labels):
 		"""
@@ -94,7 +100,7 @@ class PlotGenerator:
 		for ds in data_sets:
 			assert len(ds) == len(self.__x_tick_labels)
 
-		plt.figure()
+		plt.figure(figsize=(self.__figure_width, self.__figure_height))
 
 		for i in range(0, NUM_SETS):
 			self.__gen_bar_plot_object(data_sets[i], self.select_color(i) , i, NUM_SETS)
@@ -141,7 +147,7 @@ class PlotGenerator:
 		for ds in data_sets:
 			assert len(ds) == len(self.__x_tick_labels)
 
-		plt.figure()
+		plt.figure(figsize=(self.__figure_width, self.__figure_height))
 
 		boxes = []
 		for i in range(0, NUM_SETS):
@@ -186,7 +192,8 @@ class PlotGenerator:
 		Cannot change x axis scale.
 		"""
 		assert isinstance(data, np.ndarray)
-		plt.figure()
+		
+		plt.figure(figsize=(self.__figure_width, self.__figure_height))
 
 		plt.hist(data, bins)
 
@@ -207,7 +214,7 @@ class PlotGenerator:
 		assert isinstance(data_x, np.ndarray)
 		assert isinstance(data_y, np.ndarray)
 
-		plt.figure()
+		plt.figure(figsize=(self.__figure_width, self.__figure_height))
 
 		plt.scatter(data_x, data_y)
 
@@ -235,7 +242,7 @@ class PlotGenerator:
 			for i in range(1, NUM_SETS):
 				assert len(data_sets[i]) == len(data_sets[i - 1])
 
-		plt.figure()
+		plt.figure(figsize=(self.__figure_width, self.__figure_height))
 
 		plt.imshow(data_sets, cmap='hot', interpolation='nearest')
 
@@ -257,7 +264,7 @@ class PlotGenerator:
 		Generates a line plot.
 		Cannot change x axis scales.
 		"""
-		plt.figure()
+		plt.figure(figsize=(self.__figure_width, self.__figure_height))
 
 		for y in data_sets:
 			plt.plot(x, y)
@@ -347,7 +354,7 @@ class PlotGenerator:
 		nanoseconds_since_epoch = time.time_ns()
 		return  (nanoseconds_since_epoch * date_int) % time_int
 		
-#Example plots using PlotGenerator
+#Example usage
 if __name__ == '__main__':
 	#Create some fake data
 	line_plot_data_x = np.linspace(0, 5, 100)
@@ -378,6 +385,7 @@ if __name__ == '__main__':
 
 	#Set up the plot generator
 	pg = PlotGenerator(use_random=True)
+	pg.set_figure_options(width = 10)
 	pg.set_text_options(45, 'right', 0, 'center', 8)
 	pg.set_text('Title', 'X', 'Y', ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j'], None)
 
