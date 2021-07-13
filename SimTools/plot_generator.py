@@ -112,7 +112,7 @@ class PlotGenerator:
 		plt.xlabel(self.__x_label)
 		plt.ylabel(self.__y_label)
 		if self.__x_tick_labels != None:
-			new_x_tick_labels = self.combine_data_set_names_with_x_tick_labels(data_set_names)
+			new_x_tick_labels = self.multiply_x_tick_labels(NUM_SETS)
 			x_ticks = np.arange(0, NUM_SETS * len(data_sets[0]), 1)
 			plt.xticks(x_ticks, labels=new_x_tick_labels, rotation=self.__x_tick_label_rotation, ha=self.__x_tick_label_horizontal_alignment, fontsize=self.__x_tick_label_font_size)
 
@@ -291,6 +291,18 @@ class PlotGenerator:
 			for name in data_set_names:
 				new_x_tick_labels.append(label + f' ({name})')
 		return new_x_tick_labels
+
+	def multiply_x_tick_labels(self, m):
+		"""
+		Multiply the number of x tick labels.
+		Like combine_data_set_names_with_x_tick_lablels but doesn't add concatenate anything.
+		"""
+		new_x_tick_labels = []
+		for label in self.__x_tick_labels:
+			for i in range(m):
+				new_x_tick_labels.append(label)
+		return new_x_tick_labels
+
 
 	def select_color(self, index):
 		"""
