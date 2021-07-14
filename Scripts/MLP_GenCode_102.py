@@ -8,7 +8,7 @@
 # Can we reproduce that with MLP layers instead of CNN?
 # Extract features as list of K-mer frequencies for K={1,2,3}.
 
-# In[1]:
+# In[14]:
 
 
 import time
@@ -18,24 +18,24 @@ def show_time():
 show_time()
 
 
-# In[2]:
+# In[15]:
 
 
-PC_TRAINS=8000
-NC_TRAINS=8000
-PC_TESTS=2000
-NC_TESTS=2000   # Wen et al 2019 used 8000 and 2000 of each class
+PC_TRAINS=20000
+NC_TRAINS=20000
+PC_TESTS=5000
+NC_TESTS=5000   # Wen et al 2019 used 8000 and 2000 of each class
 PC_LENS=(200,4000)
 NC_LENS=(200,4000)    # Wen et al 2019 used 250-3500 for lncRNA only
 MAX_K = 3
 INPUT_SHAPE=(None,84)  # 4^3 + 4^2 + 4^1
-NEURONS=16
-EPOCHS=50
+NEURONS=128
+EPOCHS=25
 SPLITS=5
-FOLDS=1   # make this 5 for serious testing
+FOLDS=5   # make this 5 for serious testing
 
 
-# In[3]:
+# In[16]:
 
 
 import numpy as np
@@ -52,7 +52,7 @@ from keras.losses import BinaryCrossentropy
 from keras.callbacks import ModelCheckpoint
 
 
-# In[4]:
+# In[17]:
 
 
 import sys
@@ -90,7 +90,7 @@ MODELPATH="BestModel"  # saved on cloud instance and lost after logout
 # ## Data Load
 # Restrict mRNA to those transcripts with a recognized ORF.
 
-# In[5]:
+# In[18]:
 
 
 PC_FILENAME='gencode.v38.pc_transcripts.fa.gz'
@@ -99,7 +99,7 @@ PC_FULLPATH=DATAPATH+PC_FILENAME
 NC_FULLPATH=DATAPATH+NC_FILENAME
 
 
-# In[6]:
+# In[19]:
 
 
 # Full GenCode ver 38 human is 106143 pc + 48752 nc and loads in 7 sec.
@@ -118,7 +118,7 @@ show_time()
 
 # ## Data Prep
 
-# In[7]:
+# In[20]:
 
 
 def dataframe_length_filter(df,low_high):
@@ -151,7 +151,7 @@ pcdf=None
 ncdf=None
 
 
-# In[8]:
+# In[21]:
 
 
 # Any portion of a shuffled list is a random selection
@@ -164,7 +164,7 @@ pc_all=None
 nc_all=None
 
 
-# In[9]:
+# In[22]:
 
 
 def prepare_x_and_y(seqs1,seqs0):
@@ -186,7 +186,7 @@ Xseq,y=prepare_x_and_y(pc_train,nc_train)
 show_time()
 
 
-# In[10]:
+# In[23]:
 
 
 def seqs_to_kmer_freqs(seqs,max_K):
@@ -210,7 +210,7 @@ print("y shape",np.shape(y))
 
 # ## Neural network
 
-# In[11]:
+# In[24]:
 
 
 def make_DNN():
@@ -231,7 +231,7 @@ model = make_DNN()
 print(model.summary())
 
 
-# In[12]:
+# In[25]:
 
 
 def do_cross_validation(X,y):
@@ -268,13 +268,13 @@ def do_cross_validation(X,y):
             plt.show()
 
 
-# In[13]:
+# In[26]:
 
 
 do_cross_validation(Xfrq,y)
 
 
-# In[14]:
+# In[27]:
 
 
 # TO DO: run trained model on (pc_test,nc_test)

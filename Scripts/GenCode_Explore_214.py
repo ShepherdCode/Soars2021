@@ -14,7 +14,7 @@
 # 
 # Use MatPlotLib to make box plots and heat maps.
 
-# In[2]:
+# In[1]:
 
 
 import time 
@@ -25,7 +25,7 @@ def show_time():
 show_time()
 
 
-# In[14]:
+# In[2]:
 
 
 import numpy as np
@@ -74,7 +74,7 @@ if not assert_imported_RNA_describe():
     print("ERROR: Cannot use RNA_describe.")
 
 
-# In[4]:
+# In[3]:
 
 
 PC_FILENAME='gencode.v38.pc_transcripts.fa.gz'
@@ -86,7 +86,7 @@ NC_FILENAME='gencode.v38.lncRNA_transcripts.fa.gz'
 # over 100K protein-coding RNA (mRNA) 
 # and almost 50K non-coding RNA (lncRNA).
 
-# In[5]:
+# In[4]:
 
 
 # Full GenCode ver 38 human is 106143 pc + 48752 nc and loads in 7 sec.
@@ -112,7 +112,7 @@ show_time()
 # ###OPTIONS
 # ---
 
-# In[6]:
+# In[5]:
 
 
 SAMPLE_FRACTION = 0.5
@@ -125,7 +125,7 @@ NUMBER_OF_SIM_SEQUENCES_PER_BIN = 100
 # ###Take sample of mRNA and lncRNA sequence data sets
 # ---
 
-# In[7]:
+# In[6]:
 
 
 pcdf_sample = pcdf.sample(frac=SAMPLE_FRACTION, random_state=REPRODUCABILITY_SEED) #Take a sample of a fraction of the mRNA data frame
@@ -138,7 +138,7 @@ show_time()
 # ###Generate bins
 # ---
 
-# In[8]:
+# In[7]:
 
 
 bins = []
@@ -153,7 +153,7 @@ show_time()
 # 
 # ---
 
-# In[9]:
+# In[8]:
 
 
 random.seed(REPRODUCABILITY_SEED)
@@ -175,14 +175,14 @@ show_time()
 # ###Bin sequences by sequence length
 # ---
 
-# In[10]:
+# In[9]:
 
 
 def subset_list_by_len_bounds(input_list, min_len, max_len):
   return list(filter(lambda x: len(x) > min_len and len(x) <= max_len, input_list))
 
 
-# In[11]:
+# In[10]:
 
 
 #Bin the RNA sequences
@@ -203,7 +203,7 @@ show_time()
 # 
 # ---
 
-# In[12]:
+# In[11]:
 
 
 #TODO: optimize. combine data?
@@ -269,7 +269,7 @@ show_time()
 # 
 # ---
 
-# In[23]:
+# In[12]:
 
 
 MAX_K = 3
@@ -296,7 +296,7 @@ for key in pc_freqs:
   k_mer_names[len(key) - 1].append(key)
 
 
-# In[29]:
+# In[13]:
 
 
 for i in range(3):
@@ -308,7 +308,7 @@ for i in range(3):
 # 
 # ---
 
-# In[24]:
+# In[14]:
 
 
 pc_bin_sizes = np.zeros(NUM_BINS)
@@ -327,7 +327,7 @@ show_time()
 # 
 # ---
 
-# In[25]:
+# In[15]:
 
 
 """
@@ -337,7 +337,7 @@ def count_data_in_range(data, min, max):
   return np.sum((data >= min) & (data <= max))
 
 
-# In[26]:
+# In[16]:
 
 
 pc_no_orf_count = np.zeros(NUM_BINS)
@@ -365,7 +365,7 @@ show_time()
 # 
 # ---
 
-# In[31]:
+# In[25]:
 
 
 #Generate x-axis labels
@@ -377,20 +377,23 @@ data_set_names = ['mRNA', 'lncRNA', 'sim-mRNA', 'sim-lncRNA']
 
 #Set up plot generator
 pg = PlotGenerator()
-pg.set_text_options(90, 'right', 0, 'center')
+pg.set_text_options(90, 'right', 0, 'center', 12)
 
+#Generate plots
 pg.set_text('1-Mer Frequencies', 'Mer', 'Frequency', k_mer_names[0], None)
 pg.bar_plot([pc_k_mer_freqs[0], nc_k_mer_freqs[0]], ['mRNA', 'lncRNA'])
 
 pg.set_text('2-Mer Frequencies', 'Mer', 'Frequency', k_mer_names[1], None)
 pg.bar_plot([pc_k_mer_freqs[1], nc_k_mer_freqs[1]], ['mRNA', 'lncRNA'])
 
+pg.set_figure_options(width=16)
+pg.set_text_options(90, 'right', 0, 'center', 7)
 pg.set_text('3-Mer Frequencies', 'Mer', 'Frequency', k_mer_names[2], None)
 pg.bar_plot([pc_k_mer_freqs[2], nc_k_mer_freqs[2]], ['mRNA', 'lncRNA'])
 
-pg.set_text_options(90, 'right', 0, 'center')
+pg.set_figure_options() #Reset figure width
+pg.set_text_options(90, 'right', 0, 'center', 12)
 
-#Bar plots
 pg.set_text('Number of Sequences per Sequence Length Range', 'Sequence Length Ranges', 'Number of Sequences', x_axis_labels, None)
 pg.bar_plot([pc_bin_sizes, nc_bin_sizes, sim_pc_bin_sizes, sim_nc_bin_sizes], data_set_names)
 
@@ -400,7 +403,6 @@ pg.bar_plot([pc_no_orf_count, nc_no_orf_count, sim_pc_no_orf_count, sim_nc_no_or
 pg.set_text('Number of Sequences of Max ORF Length Equal to or Less than 100', 'Sequence Length Ranges', 'Number of Sequences', x_axis_labels, None)
 pg.bar_plot([pc_max_orf_len_less_than_100, nc_max_orf_len_less_than_100, sim_pc_max_orf_len_less_than_100, sim_nc_max_orf_len_less_than_100], data_set_names)
 
-#Box plots
 pg.set_axis_options('linear', 10, 'log', 2)
 
 pg.set_text('Length of Longest ORF in RNA Sequences', 'Sequence Length Ranges', 'ORF Length', x_axis_labels, None)

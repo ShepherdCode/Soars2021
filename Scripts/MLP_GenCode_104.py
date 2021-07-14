@@ -2,11 +2,8 @@
 # coding: utf-8
 
 # # MLP GenCode 
-# Wen et al 2019 used DNN to distinguish GenCode mRNA/lncRNA.
-# Based on K-mer frequencies, K={1,2,3}, they reported 99% accuracy.
-# Their CNN used 2 Conv2D layers of 32 filters of width 3x3, max pool 2x2, 25% drop, dense 128.
-# Can we reproduce that with MLP layers instead of CNN?
-# Extract features as list of K-mer frequencies for K={1,2,3}.
+# We fixed a bug in notebook 103 which used only K=3.
+# Here repeat for K={1,2,3}.
 
 # In[1]:
 
@@ -21,18 +18,18 @@ show_time()
 # In[2]:
 
 
-PC_TRAINS=8000
-NC_TRAINS=8000
-PC_TESTS=2000
-NC_TESTS=2000   # Wen et al 2019 used 8000 and 2000 of each class
+PC_TRAINS=20000
+NC_TRAINS=20000
+PC_TESTS=5000
+NC_TESTS=5000   # Wen et al 2019 used 8000 and 2000 of each class
 PC_LENS=(200,4000)
 NC_LENS=(200,4000)    # Wen et al 2019 used 250-3500 for lncRNA only
 MAX_K = 3
 INPUT_SHAPE=(None,84)  # 4^3 + 4^2 + 4^1
-NEURONS=16
-EPOCHS=50
+NEURONS=128
+EPOCHS=25
 SPLITS=5
-FOLDS=1   # make this 5 for serious testing
+FOLDS=5   # make this 5 for serious testing
 
 
 # In[3]:
@@ -157,8 +154,10 @@ ncdf=None
 # Any portion of a shuffled list is a random selection
 pc_train=pc_all[:PC_TRAINS] 
 nc_train=nc_all[:NC_TRAINS]
-pc_test=pc_all[PC_TRAINS:PC_TESTS] 
-nc_test=nc_all[NC_TRAINS:PC_TESTS]
+pc_test=pc_all[PC_TRAINS:PC_TRAINS+PC_TESTS] 
+nc_test=nc_all[NC_TRAINS:NC_TRAINS+PC_TESTS]
+print("PC train, NC train:",len(pc_train),len(nc_train))
+print("PC test, NC test:",len(pc_test),len(nc_test))
 # Garbage collection
 pc_all=None
 nc_all=None
@@ -195,7 +194,9 @@ def seqs_to_kmer_freqs(seqs,max_K):
     collection = []
     for seq in seqs:
         counts = empty
+        # Last param should be True when using Harvester.
         counts = tool.update_count_one_K(counts,max_K,seq,True)
+        # Given counts for K=3, Harvester fills in counts for K=1,2.
         counts = tool.harvest_counts_from_K(counts,max_K)
         fdict = tool.count_to_frequency(counts,max_K)
         freqs = list(fdict.values())
