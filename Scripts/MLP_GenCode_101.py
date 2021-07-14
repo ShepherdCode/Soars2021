@@ -21,18 +21,19 @@ show_time()
 # In[2]:
 
 
-PC_TRAINS=8000
-NC_TRAINS=8000
-PC_TESTS=2000
-NC_TESTS=2000   # Wen et al 2019 used 8000 and 2000 of each class
+PC_TRAINS=10000
+NC_TRAINS=10000
+PC_TESTS=5000
+NC_TESTS=5000   # Wen et al 2019 used 8000 and 2000 of each class
 PC_LENS=(200,4000)
 NC_LENS=(200,4000)    # Wen et al 2019 used 250-3500 for lncRNA only
 MAX_K = 3
 INPUT_SHAPE=(None,84)  # 4^3 + 4^2 + 4^1
-NEURONS=16
-EPOCHS=50
+NEURONS=128
+DROP_RATE=0.2
+EPOCHS=100
 SPLITS=5
-FOLDS=1   # make this 5 for serious testing
+FOLDS=5   # make this 5 for serious testing
 
 
 # In[3]:
@@ -113,6 +114,15 @@ loader.set_label(0)
 loader.set_check_utr(False)
 ncdf=loader.load_file(NC_FULLPATH)
 print("NC seqs loaded:",len(ncdf))
+trivial=False
+if trivial:
+  print("Trivialize the data...")
+  dummy='AAAA'*200
+  for i in range(0,len(pcdf)):
+    pcdf['sequence']=dummy
+  dummy='GGGG'*200
+  for i in range(0,len(ncdf)):
+    ncdf['sequence']=dummy
 show_time()
 
 
@@ -176,13 +186,11 @@ def prepare_x_and_y(seqs1,seqs0):
     seqs1 = np.asarray(seqs1)
     seqs0 = np.asarray(seqs0)
     all_seqs = np.concatenate((seqs1,seqs0),axis=0)
-    # return all_seqs,all_labels  # test unshuffled
-    tandem=(all_seqs,all_labels)
+    #return all_seqs,all_labels  # test unshuffled
+    tandem = (all_seqs,all_labels)
     X,y = shuffle(tandem) # sklearn.utils.shuffle
     return X,y
 Xseq,y=prepare_x_and_y(pc_train,nc_train)
-#print(pc_train[0])
-#print(Xseq[0],y[0])
 show_time()
 
 
@@ -210,7 +218,7 @@ print("y shape",np.shape(y))
 
 # ## Neural network
 
-# In[11]:
+# In[ ]:
 
 
 def make_DNN():
@@ -220,7 +228,8 @@ def make_DNN():
     dnn = Sequential()
     dnn.add(Dense(NEURONS,activation="sigmoid",dtype=dt))
     dnn.add(Dense(NEURONS,activation="sigmoid",dtype=dt)) 
-    #dnn.add(Dropout(DROP_RATE))
+    dnn.add(Dense(NEURONS,activation="sigmoid",dtype=dt)) 
+    dnn.add(Dropout(DROP_RATE))
     dnn.add(Dense(1,activation="sigmoid",dtype=dt))   
     dnn.compile(optimizer='adam',
                 loss=BinaryCrossentropy(from_logits=False),
@@ -231,7 +240,7 @@ model = make_DNN()
 print(model.summary())
 
 
-# In[12]:
+# In[ ]:
 
 
 def do_cross_validation(X,y):
@@ -268,13 +277,13 @@ def do_cross_validation(X,y):
             plt.show()
 
 
-# In[13]:
+# In[ ]:
 
 
 do_cross_validation(Xfrq,y)
 
 
-# In[14]:
+# In[ ]:
 
 
 # TO DO: run trained model on (pc_test,nc_test)
