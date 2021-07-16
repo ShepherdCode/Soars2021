@@ -6,7 +6,7 @@ from RNA_describe import ORF_RE
 # The following unix command will run all tests.
 # $ pytest
 # The -v option will list each test and show progress.
-# $ pytesst -v
+# $ pytest -v
 # By default, pytest captures stdout unless the tests fail.
 # Use this option to see the output of print() statements.
 # $ pytest --capture=tee-sys
