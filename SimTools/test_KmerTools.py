@@ -25,6 +25,12 @@ class Test_Naive_Counting():
         msg="Count C"
         assert counts['C']==0,msg
         assert freqs['C']==pytest.approx(0.0)
+        msg="Count AA"
+        assert counts['AA']==reps-1,msg
+        assert freqs['AA']==pytest.approx(1.0)
+        msg="Count CC"
+        assert counts['CC']==0,msg
+        assert freqs['CC']==pytest.approx(0.0)
     def test_naive_2(self):
         H=False # avoid Harvester algorithm
         reps=5
@@ -63,3 +69,27 @@ class Test_Naive_Counting():
         assert counts['GA']==reps-1,msg
         msg="Count TA"
         assert counts['TA']==0,msg
+
+class Test_Harvester_Counting():
+    def test_harvest_1(self):
+        H=True # use Harvester algorithm
+        reps=10
+        rna = 'A'*reps
+        K = 3
+        tool = KmerTools()
+        empty = tool.make_dict_upto_K(K)
+        counts = tool.update_count_one_K(empty,K,rna,H)
+        counts = tool.harvest_counts_from_K(counts,K)
+        freqs = tool.count_to_frequency(counts,K)
+        msg="Count A"
+        assert counts['A']==reps,msg
+        assert freqs['A']==pytest.approx(1.0)
+        msg="Count C"
+        assert counts['C']==0,msg
+        assert freqs['C']==pytest.approx(0.0)
+        msg="Count AA"
+        assert counts['AA']==reps-1,msg
+        assert freqs['AA']==pytest.approx(1.0)
+        msg="Count CC"
+        assert counts['CC']==0,msg
+        assert freqs['CC']==pytest.approx(0.0)

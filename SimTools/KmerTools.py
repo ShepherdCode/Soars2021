@@ -2,6 +2,8 @@ import numpy as np
 
 '''
 Extract K-mer counts or frequencies from RNA sequences.
+TO DO: make the Harvester an option on the constructor
+so method calls are the same with and without.
 '''
 
 class KmerTools():
