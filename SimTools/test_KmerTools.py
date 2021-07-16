@@ -93,3 +93,37 @@ class Test_Harvester_Counting():
         msg="Count CC"
         assert counts['CC']==0,msg
         assert freqs['CC']==pytest.approx(0.0)
+        msg="Count AAA"
+        assert counts['AAA']==reps-2,msg
+        assert freqs['AAA']==pytest.approx(1.0)
+    def test_harvest_2(self):
+        H=True # use Harvester algorithm
+        rna = 'CAAAT'
+        K = 3
+        tool = KmerTools()
+        empty = tool.make_dict_upto_K(K)
+        counts = tool.update_count_one_K(empty,K,rna,H)
+        counts = tool.harvest_counts_from_K(counts,K)
+        freqs = tool.count_to_frequency(counts,K)
+        msg="Count A"
+        assert counts['A']==3,msg
+        msg="Count C"
+        assert counts['C']==1,msg
+        msg="Count G"
+        assert counts['G']==0,msg
+        msg="Count T"
+        assert counts['T']==1,msg
+        msg="Count CA"
+        assert counts['CA']==1,msg
+        msg="Count AA"
+        assert counts['AA']==2,msg
+        msg="Count AT"
+        assert counts['AT']==1,msg
+        msg="Count CAA"
+        assert counts['CAA']==1,msg
+        msg="Count AAA"
+        assert counts['AAA']==1,msg
+        msg="Count AAT"
+        assert counts['AAT']==1,msg
+        msg="Count TAG"
+        assert counts['TAG']==0,msg
