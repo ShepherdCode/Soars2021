@@ -129,13 +129,13 @@ class ORF_eliminator():
         
     '''
         
-    def eliminate_ORF2(self):
+    def eliminate_ORF2(self,RNA,CDS_LENGTH):
         
         
        
         orf_length = 3#randomly assigning number to get into the loop
-        while(orf_length!=0):
-            lengths= self.get_coordinates();
+        while(orf_length>CDS_LENGTH):
+            lengths= self.get_coordinates(RNA);
             orf_length = lengths[1]
             orf_starter = lengths[0]
             orf_end = lengths[0]+lengths[1]+3
@@ -145,14 +145,14 @@ class ORF_eliminator():
         #Determines mid-codon. 
             pos= math.ceil(no_of_codons/2)
             temp_codons = random.choice(STOP_CODONS)
-            temp_RNA = self.RNA
+            temp_RNA = RNA
         #Determines the exact position of where the STOP codon is to be injected.
             pointer = orf_starter + (pos-1)*3
             temp_RNA = temp_RNA[:pointer] + temp_codons + temp_RNA[pointer+3:]
-            self.set_RNA(temp_RNA)
+            RNA=temp_RNA
         
         
-        return self.RNA
+        return RNA
         
         
          
