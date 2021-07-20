@@ -72,6 +72,7 @@ class Transcript_Oracle(Sequence_Oracle):
         codons = Transcript_Oracle.remove_stops(codons,self.STOPS)
         freqs = [1]*len(codons)
         # subclasses could use change these
+        self.cds_len = None
         self.cdslen_oracle = Length_Oracle()
         self.codons_oracle = Sequence_Oracle()
         self.codons_oracle.set_sequences(codons)
@@ -104,7 +105,7 @@ class Transcript_Oracle(Sequence_Oracle):
         return utr5 + cds + utr3
     def __get_cds(self,tlen):
         if self.cds_len is None:
-            cdslen_target = tlen//2 # arbitrary default
+            cdslen_target = 2*tlen//3 # arbitrary default
         else:
             cdslen_target = self.cds_len # user settable
         self.cdslen_oracle.set_mean(cdslen_target)

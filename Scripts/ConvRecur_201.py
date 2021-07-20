@@ -30,8 +30,8 @@ INPUT_SHAPE = (RNA_LEN,ALPHABET) # Conv1D needs 2D inputs
 
 #Model
 FILTERS = 32   # how many different patterns the model looks for
-CELLS = 128 #Used in LSTM layer(s)
-NEURONS = 128 #Used in Dense layer(s)
+CELLS = 64 #Used in LSTM layer(s)
+NEURONS = 256 #Used in Dense layer(s)
 DROP_RATE = 0.1
 WIDTH = 3   # how wide each pattern is, in bases
 STRIDE_2D = (1,1)  # For Conv2D how far in each direction
@@ -176,14 +176,18 @@ def make_DNN():
     dnn.add(Conv1D(filters=FILTERS,kernel_size=WIDTH,strides=STRIDE,padding="same"))
     dnn.add(MaxPooling1D())
 
+    dnn.add(Conv1D(filters=FILTERS,kernel_size=WIDTH,strides=STRIDE,padding="same"))
+    dnn.add(Conv1D(filters=FILTERS,kernel_size=WIDTH,strides=STRIDE,padding="same"))
+    dnn.add(MaxPooling1D())
+
     dnn.add(LSTM(CELLS,return_sequences=True))
     dnn.add(LSTM(CELLS,return_sequences=False))
 
-    dnn.add(Dense(NEURONS,activation=ACTIVATION,dtype=np.float32))  
+    dnn.add(Dense(NEURONS,activation=ACTIVATION,dtype=np.float32))
 
     dnn.add(Dropout(DROP_RATE))
 
-    dnn.add(Dense(1,activation=ACTIVATION,dtype=np.float32))  
+    dnn.add(Dense(1,activation=ACTIVATION,dtype=np.float32))
 
     dnn.compile(optimizer='adam',
                 loss=BinaryCrossentropy(from_logits=False),
