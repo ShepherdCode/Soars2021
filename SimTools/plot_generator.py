@@ -47,9 +47,9 @@ class PlotGenerator:
 		Sets the titles and labels of to-be-generated plots.
 		"""
 		if x_tick_labels != None:
-			assert isinstance(x_tick_labels, list)
+			assert isinstance(x_tick_labels, list), "x_tick_labels must be a list"
 		if y_tick_labels != None:
-			assert isinstance(y_tick_labels, list)
+			assert isinstance(y_tick_labels, list), "y_tick_labels must be a list"
 		self.__title = title
 		self.__x_label = x_label
 		self.__y_label = y_label
@@ -88,17 +88,17 @@ class PlotGenerator:
 		Generates a bar plot of one or many data sets.
 		Cannot change x axis scale.
 		"""
-		assert isinstance(data_sets, (list, np.ndarray))
+		assert isinstance(data_sets, (list, np.ndarray)), 'data_sets must be a list or np.ndarray'
 		for data_set in data_sets:
-			assert isinstance(data_set, np.ndarray)
+			assert isinstance(data_set, np.ndarray), 'each data set in data_sets must be a np.ndarray'
 		NUM_SETS = len(data_sets)
-		assert isinstance(data_set_names, list)
-		assert NUM_SETS == len(data_set_names)
-		assert NUM_SETS <= len(self.__COLORS)
+		assert isinstance(data_set_names, list), 'data_set_names must be a list'
+		assert NUM_SETS == len(data_set_names), 'data_sets length must equal data_set_names length'
+		assert NUM_SETS <= len(self.__COLORS), 'data_sets length must be less than or equal to the number of colors'
 		for i in range(1, NUM_SETS):
-			assert len(data_sets[i]) == len(data_sets[i - 1])
+			assert len(data_sets[i]) == len(data_sets[i - 1]), 'all data sets must be of equal length'
 		for ds in data_sets:
-			assert len(ds) == len(self.__x_tick_labels)
+			assert len(ds) == len(self.__x_tick_labels), 'all data sets must be of length equal to the number of x tick labels'
 
 		plt.figure(figsize=(self.__figure_width, self.__figure_height))
 
@@ -135,17 +135,17 @@ class PlotGenerator:
 		Generates a box plot of one or many data sets.
 		Cannot change x axis scale.
 		"""
-		assert isinstance(data_sets, (list, np.ndarray))
+		assert isinstance(data_sets, (list, np.ndarray)), 'data_sets must be a list or np.ndarray'
 		for data_set in data_sets:
-			assert isinstance(data_set, np.ndarray)
+			assert isinstance(data_set, np.ndarray), 'each data set in data_sets must be a np.ndarray'
 		NUM_SETS = len(data_sets)
-		assert isinstance(data_set_names, list)
-		assert NUM_SETS == len(data_set_names)
-		assert NUM_SETS <= len(self.__COLORS)
+		assert isinstance(data_set_names, list), 'data_set_names must be a list'
+		assert NUM_SETS == len(data_set_names), 'data_sets length must equal data_set_names length'
+		assert NUM_SETS <= len(self.__COLORS), 'data_sets length must be less than or equal to the number of colors'
 		for i in range(1, NUM_SETS):
-			assert len(data_sets[i]) == len(data_sets[i - 1])
+			assert len(data_sets[i]) == len(data_sets[i - 1]), 'all data sets must be of equal length'
 		for ds in data_sets:
-			assert len(ds) == len(self.__x_tick_labels)
+			assert len(ds) == len(self.__x_tick_labels), 'all data sets must be of length equal to the number of x tick labels'
 
 		plt.figure(figsize=(self.__figure_width, self.__figure_height))
 
@@ -191,7 +191,7 @@ class PlotGenerator:
 		Generates a histogram.
 		Cannot change x axis scale.
 		"""
-		assert isinstance(data, np.ndarray)
+		assert isinstance(data, np.ndarray), 'data must be a np.ndarray'
 		
 		plt.figure(figsize=(self.__figure_width, self.__figure_height))
 
@@ -211,8 +211,8 @@ class PlotGenerator:
 		Generates a scatter plot.
 		Cannot change x or y axis scale.
 		"""
-		assert isinstance(data_x, np.ndarray)
-		assert isinstance(data_y, np.ndarray)
+		assert isinstance(data_x, np.ndarray), 'data_x must be a np.ndarray'
+		assert isinstance(data_y, np.ndarray), 'data_y must be a np.ndarray'
 
 		plt.figure(figsize=(self.__figure_width, self.__figure_height))
 
@@ -234,13 +234,13 @@ class PlotGenerator:
 		Generates a heatmap.
 		Cannot change x or y axis scale.
 		"""
-		assert isinstance(data_sets, (list, np.ndarray))
+		assert isinstance(data_sets, (list, np.ndarray)), 'data_sets must be a list or np.ndarray'
 		for data_set in data_sets:
-			assert isinstance(data_set, np.ndarray)
+			assert isinstance(data_set, np.ndarray), 'each data set must be a np.ndarray'
 		NUM_SETS = len(data_sets)
 		if NUM_SETS > 1:
 			for i in range(1, NUM_SETS):
-				assert len(data_sets[i]) == len(data_sets[i - 1])
+				assert len(data_sets[i]) == len(data_sets[i - 1]), 'all data sets must be of equal length'
 
 		plt.figure(figsize=(self.__figure_width, self.__figure_height))
 
@@ -302,7 +302,6 @@ class PlotGenerator:
 			for i in range(m):
 				new_x_tick_labels.append(label)
 		return new_x_tick_labels
-
 
 	def select_color(self, index):
 		"""
