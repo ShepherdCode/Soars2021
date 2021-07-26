@@ -97,20 +97,20 @@ class PlotGenerator:
 		assert NUM_SETS <= len(self.__COLORS), 'data_sets length must be less than or equal to the number of colors'
 		for i in range(1, NUM_SETS):
 			assert len(data_sets[i]) == len(data_sets[i - 1]), 'all data sets must be of equal length'
+		NUM_BARS = len(data_sets[0])
 		for ds in data_sets:
 			assert len(ds) == len(self.__x_tick_labels), 'all data sets must be of length equal to the number of x tick labels'
 
 		plt.figure(figsize=(self.__figure_width, self.__figure_height))
 
-		NUM_BARS = len(data_sets[0])
 		WIDTH = 1 / (NUM_SETS + 1)
+		HALF_WIDTH = WIDTH / 2
+		SHIFT_TO_CENTER = (NUM_SETS * HALF_WIDTH)
 		x = np.arange(NUM_BARS)
 		for i in range(0, NUM_SETS):
 			y = data_sets[i]
 			i_h = NUM_SETS - (i + 1) % NUM_SETS
-			HALF_WIDTH = WIDTH / 2
-			SHIFT_TO_CENTER = (NUM_SETS * HALF_WIDTH)
-			OFFSET = HALF_WIDTH * i_h + HALF_WIDTH * (i_h - 1) - SHIFT_TO_CENTER
+			OFFSET = HALF_WIDTH * (NUM_SETS - 2 * ((i + 1) % NUM_SETS) - 1)
 			plt.bar(x + OFFSET, y, color=self.select_color(i), width=WIDTH)
 
 		if self.__y_scale != None: #Needed because matplotlib does not like setting the base for linear plots
