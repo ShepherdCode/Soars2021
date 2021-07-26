@@ -97,13 +97,21 @@ class PlotGenerator:
 		assert NUM_SETS <= len(self.__COLORS), 'data_sets length must be less than or equal to the number of colors'
 		for i in range(1, NUM_SETS):
 			assert len(data_sets[i]) == len(data_sets[i - 1]), 'all data sets must be of equal length'
+		NUM_BARS = len(data_sets[0])
 		for ds in data_sets:
 			assert len(ds) == len(self.__x_tick_labels), 'all data sets must be of length equal to the number of x tick labels'
 
 		plt.figure(figsize=(self.__figure_width, self.__figure_height))
 
+		WIDTH = 1 / (NUM_SETS + 1)
+		HALF_WIDTH = WIDTH / 2
+		SHIFT_TO_CENTER = (NUM_SETS * HALF_WIDTH)
+		x = np.arange(NUM_BARS)
 		for i in range(0, NUM_SETS):
-			self.__gen_bar_plot_object(data_sets[i], self.select_color(i) , i, NUM_SETS)
+			y = data_sets[i]
+			i_h = NUM_SETS - (i + 1) % NUM_SETS
+			OFFSET = HALF_WIDTH * (NUM_SETS - 2 * ((i + 1) % NUM_SETS) - 1)
+			plt.bar(x + OFFSET, y, color=self.select_color(i), width=WIDTH)
 
 		if self.__y_scale != None: #Needed because matplotlib does not like setting the base for linear plots
 			plt.yscale(self.__y_scale, basey=self.__y_base)
@@ -112,23 +120,12 @@ class PlotGenerator:
 		plt.xlabel(self.__x_label)
 		plt.ylabel(self.__y_label)
 		if self.__x_tick_labels != None:
-			new_x_tick_labels = self.multiply_x_tick_labels(NUM_SETS)
-			x_ticks = np.arange(0, NUM_SETS * len(data_sets[0]), 1)
-			plt.xticks(x_ticks, labels=new_x_tick_labels, rotation=self.__x_tick_label_rotation, ha=self.__x_tick_label_horizontal_alignment, fontsize=self.__x_tick_label_font_size)
+			x = np.arange(NUM_BARS)
+			plt.xticks(x, labels=self.__x_tick_labels, rotation=self.__x_tick_label_rotation, ha=self.__x_tick_label_horizontal_alignment, fontsize=self.__x_tick_label_font_size)
 
 		plt.legend(data_set_names, loc='upper left')
 
 		plt.show()
-
-	def __gen_bar_plot_object(self, data, color, plot_num, num_plots):
-		"""
-		Creates a bar plot object.
-		Used in bar_plot function.
-		"""
-		#Note: assertions all handled earlier in bar_plot
-		positions = np.arange(plot_num, len(data) * num_plots, num_plots)
-		bar_plot = plt.bar(positions, data, color=color)
-		return bar_plot
 
 	def box_plot(self, data_sets, data_set_names, showfliers):
 		"""
@@ -295,7 +292,7 @@ class PlotGenerator:
 	def multiply_x_tick_labels(self, m):
 		"""
 		Multiply the number of x tick labels.
-		Like combine_data_set_names_with_x_tick_lablels but doesn't add concatenate anything.
+		Like combine_data_set_names_with_x_tick_labels but doesn't add concatenate anything.
 		"""
 		new_x_tick_labels = []
 		for label in self.__x_tick_labels:
@@ -372,11 +369,11 @@ if __name__ == '__main__':
 	line_plot_data_y_a = line_plot_data_x**2
 	line_plot_data_y_b = line_plot_data_x**3
 
-	bar_plot_data_a = np.zeros(10)
-	bar_plot_data_b = np.zeros(10)
-	for i in range(0, 10):
-		bar_plot_data_a[i] = i
-		bar_plot_data_b[i] = i**2
+	bar_plot_data_a = np.random.rand(10)
+	bar_plot_data_b = np.random.rand(10)
+	bar_plot_data_c = np.random.rand(10)
+	bar_plot_data_d = np.random.rand(10)
+	bar_plot_data_e = np.random.rand(10)
 
 	box_plot_data_a = np.empty(10, dtype=object)
 	box_plot_data_b = np.empty(10, dtype=object)
@@ -401,23 +398,28 @@ if __name__ == '__main__':
 	pg.set_text('Title', 'X', 'Y', ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j'], None)
 
 	#Plot the line plot data
-	pg.line_plot(line_plot_data_x, [line_plot_data_y_a, line_plot_data_y_b], trendline=True)
+	#pg.line_plot(line_plot_data_x, [line_plot_data_y_a, line_plot_data_y_b], trendline=True)
 
 	#Plot the bar plot data
-	pg.bar_plot([bar_plot_data_a, bar_plot_data_b], ['A', 'B'])
+	SETS = []
+	NAMES = []
+	for i in range(1, 6):
+		SETS.append(np.random.rand(10))
+		NAMES.append(chr(i-1+ord('A')))
+		pg.bar_plot(SETS, NAMES)
 
 	#Plot the box plot data
 	#Note the x tick labels. 
 	#It will automatically generate this using the previously set x tick labels and given data_a_name and data_b_name values
-	pg.box_plot([box_plot_data_a, box_plot_data_b], ['A', 'B'], False)
+	#pg.box_plot([box_plot_data_a, box_plot_data_b], ['A', 'B'], False)
 
 	#Plot the histogram data
-	pg.set_axis_options('log', 10, 'log', 10)
-	pg.histogram(histogram_data, 20)
+	#pg.set_axis_options('log', 10, 'log', 10)
+	#pg.histogram(histogram_data, 20)
 
 	#Plot the scatter plot data
-	pg.scatter_plot(scatter_plot_data_x, scatter_plot_data_y, trendline=True)
+	#pg.scatter_plot(scatter_plot_data_x, scatter_plot_data_y, trendline=True)
 
 	#Plot the heatmap data
-	pg.set_text('Title', 'X', 'Y', None, None)
-	pg.heatmap(heatmap_data)
+	#pg.set_text('Title', 'X', 'Y', None, None)
+	#pg.heatmap(heatmap_data)
