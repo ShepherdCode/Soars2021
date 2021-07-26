@@ -1,12 +1,13 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# # MLP GenCode 
-# MLP_GenCode_110 with one change.  
-# Now use NEURONS=16 instead of 32.  
-# accuracy: 96.00%, AUC: 99.95%
+# # ORF MLP 
+# Based on MLP_GenCode_110 which achieved high accuracy on GenCode.    
+# Now use simulated RNA to test the ORF effect.  
+# Here, K=3 instead of K={1,2,3}.
+# 
 
-# In[1]:
+# In[ ]:
 
 
 import time
@@ -16,25 +17,24 @@ def show_time():
 show_time()
 
 
-# In[2]:
+# In[ ]:
 
 
 PC_TRAINS=8000
 NC_TRAINS=8000
 PC_TESTS=8000
 NC_TESTS=8000   # Wen et al 2019 used 8000 and 2000 of each class
-PC_LENS=(200,99000)
-NC_LENS=(200,99000)    # Wen et al 2019 used 250-3500 for lncRNA only
+RNA_LEN=1000
 MAX_K = 3
 INPUT_SHAPE=(None,84)  # 4^3 + 4^2 + 4^1
-NEURONS=16
-DROP_RATE=0.25
-EPOCHS=100 # 25
+NEURONS=128
+DROP_RATE=0.01
+EPOCHS=200 # 25
 SPLITS=5
 FOLDS=5   # make this 5 for serious testing
 
 
-# In[3]:
+# In[ ]:
 
 
 import numpy as np
@@ -51,7 +51,7 @@ from keras.losses import BinaryCrossentropy
 from keras.callbacks import ModelCheckpoint
 
 
-# In[4]:
+# In[ ]:
 
 
 import sys
@@ -65,13 +65,17 @@ if IN_COLAB:
     print("On Google CoLab, mount cloud-local file, get our code from GitHub.")
     PATH='/content/drive/'
     #drive.mount(PATH,force_remount=True)  # hardly ever need this
-    drive.mount(PATH)    # Google will require login credentials
+    #drive.mount(PATH)    # Google will require login credentials
     DATAPATH=PATH+'My Drive/data/'  # must end in "/"
     import requests
-    r = requests.get('https://raw.githubusercontent.com/ShepherdCode/Soars2021/master/SimTools/GenCodeTools.py')
-    with open('GenCodeTools.py', 'w') as f:
+    r = requests.get('https://raw.githubusercontent.com/ShepherdCode/Soars2021/master/SimTools/RNA_describe.py')
+    with open('RNA_describe.py', 'w') as f:
         f.write(r.text)  
-    from GenCodeTools import GenCodeLoader
+    from RNA_describe import ORF_counter
+    r = requests.get('https://raw.githubusercontent.com/ShepherdCode/Soars2021/master/SimTools/RNA_gen.py')
+    with open('RNA_gen.py', 'w') as f:
+        f.write(r.text)  
+    from RNA_gen import Collection_Generator, Transcript_Oracle
     r = requests.get('https://raw.githubusercontent.com/ShepherdCode/Soars2021/master/SimTools/KmerTools.py')
     with open('KmerTools.py', 'w') as f:
         f.write(r.text)  
@@ -80,7 +84,8 @@ else:
         print("CoLab not working. On my PC, use relative paths.")
         DATAPATH='data/'  # must end in "/"
         sys.path.append("..") # append parent dir in order to use sibling dirs
-        from SimTools.GenCodeTools import GenCodeLoader
+        from SimTools.RNA_describe import ORF_counter
+        from SimTools.RNA_gen import Collection_Generator, Transcript_Oracle
         from SimTools.KmerTools import KmerTools
 MODELPATH="BestModel"  # saved on cloud instance and lost after logout
 #MODELPATH=DATAPATH+MODELPATH  # saved on Google Drive but requires login
@@ -89,71 +94,54 @@ MODELPATH="BestModel"  # saved on cloud instance and lost after logout
 # ## Data Load
 # Restrict mRNA to those transcripts with a recognized ORF.
 
-# In[5]:
+# In[ ]:
 
 
-PC_FILENAME='gencode.v26.pc_transcripts.fa.gz'
-NC_FILENAME='gencode.v26.lncRNA_transcripts.fa.gz'
-PC_FILENAME='gencode.v38.pc_transcripts.fa.gz'
-NC_FILENAME='gencode.v38.lncRNA_transcripts.fa.gz'
-PC_FULLPATH=DATAPATH+PC_FILENAME
-NC_FULLPATH=DATAPATH+NC_FILENAME
+show_time()
+def make_generators(seq_len):
+    pcgen = Collection_Generator()  
+    pcgen.get_len_oracle().set_mean(seq_len)
+    pcgen.set_seq_oracle(Transcript_Oracle())
+    ncgen = Collection_Generator()  
+    ncgen.get_len_oracle().set_mean(seq_len)
+    return pcgen,ncgen
+
+pc_sim,nc_sim = make_generators(RNA_LEN)
+pc_all = pc_sim.get_sequences(PC_TRAINS+PC_TESTS)
+nc_all = nc_sim.get_sequences(NC_TRAINS+NC_TESTS)
+print("Generated",len(pc_all),"PC seqs")
+print("Generated",len(nc_all),"NC seqs")
 
 
-# In[6]:
+# In[ ]:
 
 
-loader=GenCodeLoader()
-loader.set_label(1)
-loader.set_check_utr(False)
-pcdf=loader.load_file(PC_FULLPATH)
-print("PC seqs loaded:",len(pcdf))
-loader.set_label(0)
-loader.set_check_utr(False)
-ncdf=loader.load_file(NC_FULLPATH)
-print("NC seqs loaded:",len(ncdf))
+# Describe the sequences
+def describe_sequences(list_of_seq):
+    oc = ORF_counter()
+    num_seq = len(list_of_seq)
+    rna_lens = np.zeros(num_seq)
+    orf_lens = np.zeros(num_seq)
+    for i in range(0,num_seq):
+        rna_len = len(list_of_seq[i])
+        rna_lens[i] = rna_len
+        oc.set_sequence(list_of_seq[i])
+        orf_len = oc.get_max_orf_len()
+        orf_lens[i] = orf_len
+    print ("Average RNA length:",rna_lens.mean())
+    print ("Average ORF length:",orf_lens.mean())
+    
+print("Simulated sequences prior to adjustment:")
+print("PC seqs")
+describe_sequences(pc_all)
+print("NC seqs")
+describe_sequences(nc_all)
 show_time()
 
 
 # ## Data Prep
 
-# In[7]:
-
-
-def dataframe_length_filter(df,low_high):
-    (low,high)=low_high
-    # The pandas query language is strange, 
-    # but this is MUCH faster than loop & drop.
-    return df[ (df['seqlen']>=low) & (df['seqlen']<=high) ]
-def dataframe_shuffle(df):
-    # The ignore_index option is new in Pandas 1.3. 
-    # The default (False) replicates the old behavior: shuffle the index too.
-    # The new option seems more logical th
-    # After shuffling, df.iloc[0] has index == 0.
-    # return df.sample(frac=1,ignore_index=True)
-    return df.sample(frac=1)  # Use this till CoLab upgrades Pandas
-def dataframe_extract_sequence(df):
-    return df['sequence'].tolist()
-
-pc_all = dataframe_extract_sequence(
-    #dataframe_shuffle(
-    dataframe_length_filter(pcdf,PC_LENS))#)
-nc_all = dataframe_extract_sequence(
-    #dataframe_shuffle(
-    dataframe_length_filter(ncdf,NC_LENS))#)
-
-#pc_all=['CAAAA','CCCCC','AAAAA','AAACC','CCCAA','CAAAA','CCCCC','AACAA','AAACC','CCCAA']
-#nc_all=['GGGGG','TTTTT','GGGTT','GGGTG','TTGTG','GGGGG','TTTTT','GGTTT','GGGTG','TTGTG']
-
-show_time()
-print("PC seqs pass filter:",len(pc_all))
-print("NC seqs pass filter:",len(nc_all))
-# Garbage collection to reduce RAM footprint
-pcdf=None
-ncdf=None
-
-
-# In[8]:
+# In[ ]:
 
 
 # Any portion of a shuffled list is a random selection
@@ -168,7 +156,7 @@ pc_all=None
 nc_all=None
 
 
-# In[9]:
+# In[ ]:
 
 
 def prepare_x_and_y(seqs1,seqs0):
@@ -195,7 +183,7 @@ print(y[:3])
 show_time()
 
 
-# In[10]:
+# In[ ]:
 
 
 def seqs_to_kmer_freqs(seqs,max_K):
@@ -204,10 +192,11 @@ def seqs_to_kmer_freqs(seqs,max_K):
     collection = []
     for seq in seqs:
         counts = empty
+        counts = tool.update_count_one_K(counts,max_K,seq,False)
         # Last param should be True when using Harvester.
-        counts = tool.update_count_one_K(counts,max_K,seq,True)
         # Given counts for K=3, Harvester fills in counts for K=1,2.
-        counts = tool.harvest_counts_from_K(counts,max_K)
+        # counts = tool.update_count_one_K(counts,max_K,seq,True)
+        # counts = tool.harvest_counts_from_K(counts,max_K)
         fdict = tool.count_to_frequency(counts,max_K)
         freqs = list(fdict.values())
         collection.append(freqs)
@@ -218,7 +207,7 @@ show_time()
 
 # ## Neural network
 
-# In[11]:
+# In[ ]:
 
 
 def make_DNN():
@@ -240,7 +229,7 @@ model = make_DNN()
 print(model.summary())
 
 
-# In[12]:
+# In[ ]:
 
 
 def do_cross_validation(X,y):
@@ -277,18 +266,18 @@ def do_cross_validation(X,y):
             plt.show()
 
 
-# In[13]:
+# In[ ]:
 
 
 do_cross_validation(Xfrq,y)
 
 
-# In[14]:
+# In[ ]:
 
 
 from keras.models import load_model
-print(pc_train[0])
-Xseq,y=prepare_x_and_y(pc_train,nc_train)
+print(pc_test[0])
+Xseq,y=prepare_x_and_y(pc_test,nc_test)
 print(Xseq[0])
 Xfrq=seqs_to_kmer_freqs(Xseq,MAX_K)
 print(Xfrq[0])
@@ -303,7 +292,7 @@ print("Test on",len(nc_test),"NC seqs")
 print("%s: %.2f%%" % (best_model.metrics_names[1], scores[1]*100))
 
 
-# In[15]:
+# In[ ]:
 
 
 from sklearn.metrics import roc_curve
@@ -326,7 +315,7 @@ plt.show()
 print("%s: %.2f%%" %('AUC',bm_auc*100.0))
 
 
-# In[15]:
+# In[ ]:
 
 
 

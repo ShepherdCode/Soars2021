@@ -29,10 +29,10 @@ INPUT_SHAPE_2D = (RNA_LEN,ALPHABET,1) # Conv2D needs 3D inputs
 INPUT_SHAPE = (RNA_LEN,ALPHABET) # Conv1D needs 2D inputs
 
 #Model
-FILTERS = 32   # how many different patterns the model looks for
-CELLS = 64 #Used in LSTM layer(s)
-NEURONS = 256 #Used in Dense layer(s)
-DROP_RATE = 0.1
+FILTERS = 16   # how many different patterns the model looks for
+CELLS = 128 #Used in LSTM layer(s)
+NEURONS = 128 #Used in Dense layer(s)
+DROP_RATE = 0.05
 WIDTH = 3   # how wide each pattern is, in bases
 STRIDE_2D = (1,1)  # For Conv2D how far in each direction
 STRIDE = 1 # For Conv1D, how far between pattern matches, in bases

@@ -1,12 +1,14 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# # MLP GenCode 
-# MLP_GenCode_110 with one change.  
-# Now use NEURONS=16 instead of 32.  
-# accuracy: 96.00%, AUC: 99.95%
+# # ORF MLP  
+# We have an MLP that learns well on GenCode or Sim RNA.  
+# Now improve the experimental design.  
+# Train on one, test on the other.  
+# Save best and last models.  
+# Make a confusion matrix.  
 
-# In[1]:
+# In[40]:
 
 
 import time
@@ -16,25 +18,24 @@ def show_time():
 show_time()
 
 
-# In[2]:
+# In[41]:
 
 
 PC_TRAINS=8000
 NC_TRAINS=8000
 PC_TESTS=8000
 NC_TESTS=8000   # Wen et al 2019 used 8000 and 2000 of each class
-PC_LENS=(200,99000)
-NC_LENS=(200,99000)    # Wen et al 2019 used 250-3500 for lncRNA only
+RNA_LEN=1000
 MAX_K = 3
 INPUT_SHAPE=(None,84)  # 4^3 + 4^2 + 4^1
-NEURONS=16
-DROP_RATE=0.25
-EPOCHS=100 # 25
+NEURONS=128
+DROP_RATE=0.01
+EPOCHS=100   # 200 
 SPLITS=5
-FOLDS=5   # make this 5 for serious testing
+FOLDS=1   # make this 5 for serious testing
 
 
-# In[3]:
+# In[42]:
 
 
 import numpy as np
@@ -43,15 +44,18 @@ import matplotlib.pyplot as plt
 from sklearn.utils import shuffle
 from sklearn.model_selection import KFold
 from sklearn.model_selection import cross_val_score
+from sklearn.metrics import roc_curve
+from sklearn.metrics import roc_auc_score
 
 from keras.models import Sequential
 from keras.layers import Dense,Embedding,Dropout
 from keras.layers import Flatten,TimeDistributed
 from keras.losses import BinaryCrossentropy
 from keras.callbacks import ModelCheckpoint
+from keras.models import load_model
 
 
-# In[4]:
+# In[43]:
 
 
 import sys
@@ -68,10 +72,14 @@ if IN_COLAB:
     drive.mount(PATH)    # Google will require login credentials
     DATAPATH=PATH+'My Drive/data/'  # must end in "/"
     import requests
-    r = requests.get('https://raw.githubusercontent.com/ShepherdCode/Soars2021/master/SimTools/GenCodeTools.py')
-    with open('GenCodeTools.py', 'w') as f:
+    r = requests.get('https://raw.githubusercontent.com/ShepherdCode/Soars2021/master/SimTools/RNA_describe.py')
+    with open('RNA_describe.py', 'w') as f:
         f.write(r.text)  
-    from GenCodeTools import GenCodeLoader
+    from RNA_describe import ORF_counter
+    r = requests.get('https://raw.githubusercontent.com/ShepherdCode/Soars2021/master/SimTools/RNA_gen.py')
+    with open('RNA_gen.py', 'w') as f:
+        f.write(r.text)  
+    from RNA_gen import Collection_Generator, Transcript_Oracle
     r = requests.get('https://raw.githubusercontent.com/ShepherdCode/Soars2021/master/SimTools/KmerTools.py')
     with open('KmerTools.py', 'w') as f:
         f.write(r.text)  
@@ -80,80 +88,64 @@ else:
         print("CoLab not working. On my PC, use relative paths.")
         DATAPATH='data/'  # must end in "/"
         sys.path.append("..") # append parent dir in order to use sibling dirs
-        from SimTools.GenCodeTools import GenCodeLoader
+        from SimTools.RNA_describe import ORF_counter
+        from SimTools.RNA_gen import Collection_Generator, Transcript_Oracle
         from SimTools.KmerTools import KmerTools
-MODELPATH="BestModel"  # saved on cloud instance and lost after logout
-#MODELPATH=DATAPATH+MODELPATH  # saved on Google Drive but requires login
+BESTMODELPATH=DATAPATH+"BestModel"  # saved on cloud instance and lost after logout
+LASTMODELPATH=DATAPATH+"LastModel"  # saved on Google Drive but requires login
 
 
 # ## Data Load
 # Restrict mRNA to those transcripts with a recognized ORF.
 
-# In[5]:
+# In[44]:
 
 
-PC_FILENAME='gencode.v26.pc_transcripts.fa.gz'
-NC_FILENAME='gencode.v26.lncRNA_transcripts.fa.gz'
-PC_FILENAME='gencode.v38.pc_transcripts.fa.gz'
-NC_FILENAME='gencode.v38.lncRNA_transcripts.fa.gz'
-PC_FULLPATH=DATAPATH+PC_FILENAME
-NC_FULLPATH=DATAPATH+NC_FILENAME
+show_time()
+def make_generators(seq_len):
+    pcgen = Collection_Generator()  
+    pcgen.get_len_oracle().set_mean(seq_len)
+    pcgen.set_seq_oracle(Transcript_Oracle())
+    ncgen = Collection_Generator()  
+    ncgen.get_len_oracle().set_mean(seq_len)
+    return pcgen,ncgen
+
+pc_sim,nc_sim = make_generators(RNA_LEN)
+pc_all = pc_sim.get_sequences(PC_TRAINS+PC_TESTS)
+nc_all = nc_sim.get_sequences(NC_TRAINS+NC_TESTS)
+print("Generated",len(pc_all),"PC seqs")
+print("Generated",len(nc_all),"NC seqs")
 
 
-# In[6]:
+# In[45]:
 
 
-loader=GenCodeLoader()
-loader.set_label(1)
-loader.set_check_utr(False)
-pcdf=loader.load_file(PC_FULLPATH)
-print("PC seqs loaded:",len(pcdf))
-loader.set_label(0)
-loader.set_check_utr(False)
-ncdf=loader.load_file(NC_FULLPATH)
-print("NC seqs loaded:",len(ncdf))
+# Describe the sequences
+def describe_sequences(list_of_seq):
+    oc = ORF_counter()
+    num_seq = len(list_of_seq)
+    rna_lens = np.zeros(num_seq)
+    orf_lens = np.zeros(num_seq)
+    for i in range(0,num_seq):
+        rna_len = len(list_of_seq[i])
+        rna_lens[i] = rna_len
+        oc.set_sequence(list_of_seq[i])
+        orf_len = oc.get_max_orf_len()
+        orf_lens[i] = orf_len
+    print ("Average RNA length:",rna_lens.mean())
+    print ("Average ORF length:",orf_lens.mean())
+    
+print("Simulated sequences prior to adjustment:")
+print("PC seqs")
+describe_sequences(pc_all)
+print("NC seqs")
+describe_sequences(nc_all)
 show_time()
 
 
 # ## Data Prep
 
-# In[7]:
-
-
-def dataframe_length_filter(df,low_high):
-    (low,high)=low_high
-    # The pandas query language is strange, 
-    # but this is MUCH faster than loop & drop.
-    return df[ (df['seqlen']>=low) & (df['seqlen']<=high) ]
-def dataframe_shuffle(df):
-    # The ignore_index option is new in Pandas 1.3. 
-    # The default (False) replicates the old behavior: shuffle the index too.
-    # The new option seems more logical th
-    # After shuffling, df.iloc[0] has index == 0.
-    # return df.sample(frac=1,ignore_index=True)
-    return df.sample(frac=1)  # Use this till CoLab upgrades Pandas
-def dataframe_extract_sequence(df):
-    return df['sequence'].tolist()
-
-pc_all = dataframe_extract_sequence(
-    #dataframe_shuffle(
-    dataframe_length_filter(pcdf,PC_LENS))#)
-nc_all = dataframe_extract_sequence(
-    #dataframe_shuffle(
-    dataframe_length_filter(ncdf,NC_LENS))#)
-
-#pc_all=['CAAAA','CCCCC','AAAAA','AAACC','CCCAA','CAAAA','CCCCC','AACAA','AAACC','CCCAA']
-#nc_all=['GGGGG','TTTTT','GGGTT','GGGTG','TTGTG','GGGGG','TTTTT','GGTTT','GGGTG','TTGTG']
-
-show_time()
-print("PC seqs pass filter:",len(pc_all))
-print("NC seqs pass filter:",len(nc_all))
-# Garbage collection to reduce RAM footprint
-pcdf=None
-ncdf=None
-
-
-# In[8]:
+# In[46]:
 
 
 # Any portion of a shuffled list is a random selection
@@ -168,7 +160,7 @@ pc_all=None
 nc_all=None
 
 
-# In[9]:
+# In[47]:
 
 
 def prepare_x_and_y(seqs1,seqs0):
@@ -179,14 +171,17 @@ def prepare_x_and_y(seqs1,seqs0):
     L0=np.zeros(len0,dtype=np.int8)
     S1 = np.asarray(seqs1)
     S0 = np.asarray(seqs0)
+    # This code alternates PC/NC because I wronly suspected a bug in the shuffle code below.
     all_labels = np.concatenate((L1,L0))
     all_seqs = np.concatenate((S1,S0))  
+    for i in range(0,len0):
+        all_labels[i*2] = L0[i]
+        all_seqs[i*2] = S0[i]
+        all_labels[i*2+1] = L1[i]
+        all_seqs[i*2+1] = S1[i]
     return all_seqs,all_labels  # use this to test unshuffled
-    # bug in next line?
-    X,y = shuffle(all_seqs,all_labels) # sklearn.utils.shuffle 
-    #Doesn't fix it
-    #X = shuffle(all_seqs,random_state=3) # sklearn.utils.shuffle 
-    #y = shuffle(all_labels,random_state=3) # sklearn.utils.shuffle 
+    X = shuffle(all_seqs,random_state=3) # sklearn.utils.shuffle 
+    y = shuffle(all_labels,random_state=3) # sklearn.utils.shuffle 
     return X,y
 Xseq,y=prepare_x_and_y(pc_train,nc_train)
 print(Xseq[:3])
@@ -195,15 +190,14 @@ print(y[:3])
 show_time()
 
 
-# In[10]:
+# In[48]:
 
 
 def seqs_to_kmer_freqs(seqs,max_K):
     tool = KmerTools()  # from SimTools
-    empty = tool.make_dict_upto_K(max_K)
     collection = []
     for seq in seqs:
-        counts = empty
+        counts = tool.make_dict_upto_K(max_K)
         # Last param should be True when using Harvester.
         counts = tool.update_count_one_K(counts,max_K,seq,True)
         # Given counts for K=3, Harvester fills in counts for K=1,2.
@@ -218,7 +212,7 @@ show_time()
 
 # ## Neural network
 
-# In[11]:
+# In[49]:
 
 
 def make_DNN():
@@ -240,15 +234,17 @@ model = make_DNN()
 print(model.summary())
 
 
-# In[12]:
+# In[50]:
 
 
 def do_cross_validation(X,y):
     cv_scores = []
     fold=0
+    # One checkpoint object survives five folds to save best overall.
     mycallbacks = [ModelCheckpoint(
-        filepath=MODELPATH, save_best_only=True, 
+        filepath=BESTMODELPATH, save_best_only=True, 
         monitor='val_accuracy', mode='max')]   
+    # When shuffle=True, the valid indices are a random subset.
     splitter = KFold(n_splits=SPLITS,shuffle=True)
     for train_index,valid_index in splitter.split(X):
         if fold < FOLDS:
@@ -275,59 +271,70 @@ def do_cross_validation(X,y):
             plt.grid(True)
             plt.gca().set_ylim(0,1) # any losses > 1 will be off the scale
             plt.show()
+    return model  # parameters at end of training
 
 
-# In[13]:
+# In[51]:
 
 
-do_cross_validation(Xfrq,y)
+show_time()
+last_model = do_cross_validation(Xfrq,y)
+last_model.save(LASTMODELPATH)
 
 
-# In[14]:
+# In[52]:
 
 
-from keras.models import load_model
-print(pc_train[0])
+def show_test_AUC(model,X,y):
+    ns_probs = [0 for _ in range(len(y))]
+    bm_probs = model.predict(X)
+    ns_auc = roc_auc_score(y, ns_probs)
+    bm_auc = roc_auc_score(y, bm_probs)
+    ns_fpr, ns_tpr, _ = roc_curve(y, ns_probs)
+    bm_fpr, bm_tpr, _ = roc_curve(y, bm_probs)
+    plt.plot(ns_fpr, ns_tpr, linestyle='--', label='Guess, auc=%.4f'%ns_auc)
+    plt.plot(bm_fpr, bm_tpr, marker='.', label='Model, auc=%.4f'%bm_auc)
+    plt.title('ROC')
+    plt.xlabel('False Positive Rate')
+    plt.ylabel('True Positive Rate')
+    plt.legend()
+    plt.show()
+    print("%s: %.2f%%" %('AUC',bm_auc*100.0))
+def show_test_accuracy(model,X,y):
+    scores = model.evaluate(X, y, verbose=0)
+    print("%s: %.2f%%" % (model.metrics_names[1], scores[1]*100))
+
+
+# In[53]:
+
+
+print("Accuracy on training data.")
+print("Prepare...")
+show_time()
 Xseq,y=prepare_x_and_y(pc_train,nc_train)
-print(Xseq[0])
+print("Extract K-mer features...")
+show_time()
 Xfrq=seqs_to_kmer_freqs(Xseq,MAX_K)
-print(Xfrq[0])
-X=Xfrq
-best_model=load_model(MODELPATH)
-scores = best_model.evaluate(X, y, verbose=0)
-print("The best model parameters were saved during cross-validation.")
-print("Best was defined as maximum validation accuracy at end of any epoch.")
-print("Now re-load the best model and test it on previously unseen data.")
-print("Test on",len(pc_test),"PC seqs")
-print("Test on",len(nc_test),"NC seqs")
-print("%s: %.2f%%" % (best_model.metrics_names[1], scores[1]*100))
+print("Plot...")
+show_time()
+show_test_AUC(last_model,Xfrq,y)
+show_test_accuracy(last_model,Xfrq,y)
+show_time()
 
 
-# In[15]:
+# In[54]:
 
 
-from sklearn.metrics import roc_curve
-from sklearn.metrics import roc_auc_score
-ns_probs = [0 for _ in range(len(y))]
-bm_probs = best_model.predict(X)
-print("predictions.shape",bm_probs.shape)
-print("first prediction",bm_probs[0])
-ns_auc = roc_auc_score(y, ns_probs)
-bm_auc = roc_auc_score(y, bm_probs)
-ns_fpr, ns_tpr, _ = roc_curve(y, ns_probs)
-bm_fpr, bm_tpr, _ = roc_curve(y, bm_probs)
-plt.plot(ns_fpr, ns_tpr, linestyle='--', label='Guess, auc=%.4f'%ns_auc)
-plt.plot(bm_fpr, bm_tpr, marker='.', label='Model, auc=%.4f'%bm_auc)
-plt.title('ROC')
-plt.xlabel('False Positive Rate')
-plt.ylabel('True Positive Rate')
-plt.legend()
-plt.show()
-print("%s: %.2f%%" %('AUC',bm_auc*100.0))
-
-
-# In[15]:
-
-
-
+print("Accuracy on test data.")
+print("Prepare...")
+show_time()
+Xseq,y=prepare_x_and_y(pc_test,nc_test)
+print("Extract K-mer features...")
+show_time()
+Xfrq=seqs_to_kmer_freqs(Xseq,MAX_K)
+print("Plot...")
+show_time()
+show_test_AUC(last_model,Xfrq,y)
+show_test_accuracy(last_model,Xfrq,y)
+show_time()
 
