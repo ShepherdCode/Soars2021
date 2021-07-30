@@ -93,8 +93,8 @@ class KmerTools():
     def count_to_frequency(self,counts,max_K):
         '''
         Given an data structure of K-mer counts (int),
-        return a data structure of frequencies (double) per K.
-        Within each K, sum of frequencies should be one.
+        return a dict of key:value, type string:double.
+        Clients can use list(cnt.values()) to extract just frequencies.
         '''
         freqs = dict.fromkeys(counts.keys(),0.0)
         for k in range(1,max_K+1):
