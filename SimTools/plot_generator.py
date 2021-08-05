@@ -183,16 +183,18 @@ class PlotGenerator:
 			flier.set(markersize=0.5, alpha=0.5)
 		return box_plot
 
-	def histogram(self, data, bins):
+	def histogram(self, data_sets, bins):
 		"""
 		Generates a histogram.
 		Cannot change x axis scale.
 		"""
-		assert isinstance(data, np.ndarray), 'data must be a np.ndarray'
+		for data in data_sets:
+			assert isinstance(data, np.ndarray), 'data must be a np.ndarray'
 		
 		plt.figure(figsize=(self.__figure_width, self.__figure_height))
 
-		plt.hist(data, bins)
+		for data in data_sets:
+			plt.hist(data, bins)
 
 		if self.__y_scale != None: #Needed because matplotlib does not like setting the base for linear plots
 			plt.yscale(self.__y_scale, basey=self.__y_base)
@@ -401,12 +403,12 @@ if __name__ == '__main__':
 	#pg.line_plot(line_plot_data_x, [line_plot_data_y_a, line_plot_data_y_b], trendline=True)
 
 	#Plot the bar plot data
-	SETS = []
-	NAMES = []
-	for i in range(1, 6):
-		SETS.append(np.random.rand(10))
-		NAMES.append(chr(i-1+ord('A')))
-		pg.bar_plot(SETS, NAMES)
+	#SETS = []
+	#NAMES = []
+	#for i in range(1, 6):
+	#	SETS.append(np.random.rand(10))
+	#	NAMES.append(chr(i-1+ord('A')))
+	#	pg.bar_plot(SETS, NAMES)
 
 	#Plot the box plot data
 	#Note the x tick labels. 
@@ -414,8 +416,11 @@ if __name__ == '__main__':
 	#pg.box_plot([box_plot_data_a, box_plot_data_b], ['A', 'B'], False)
 
 	#Plot the histogram data
-	#pg.set_axis_options('log', 10, 'log', 10)
-	#pg.histogram(histogram_data, 20)
+	sets = []
+	for i in range(2):
+		sets.append(np.random.rand(1000))
+
+	pg.histogram(sets, 100)
 
 	#Plot the scatter plot data
 	#pg.scatter_plot(scatter_plot_data_x, scatter_plot_data_y, trendline=True)
