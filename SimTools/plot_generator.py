@@ -193,8 +193,9 @@ class PlotGenerator:
 		
 		plt.figure(figsize=(self.__figure_width, self.__figure_height))
 
-		for data in data_sets:
-			plt.hist(data, bins)
+		for i in range(len(data_sets)):
+			data = data_sets[i]
+			plt.hist(data, bins, color=self.select_color(i))
 
 		if self.__y_scale != None: #Needed because matplotlib does not like setting the base for linear plots
 			plt.yscale(self.__y_scale, basey=self.__y_base)
