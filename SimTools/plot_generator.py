@@ -183,7 +183,7 @@ class PlotGenerator:
 			flier.set(markersize=0.5, alpha=0.5)
 		return box_plot
 
-	def histogram(self, data_sets, bins):
+	def histogram(self, data_sets, bins, data_set_names):
 		"""
 		Generates a histogram.
 		Cannot change x axis scale.
@@ -203,6 +203,7 @@ class PlotGenerator:
 		plt.title(self.__title)
 		plt.xlabel(self.__x_label)
 		plt.ylabel(self.__y_label)
+		plt.legend(data_set_names, loc='upper left')
 
 		plt.show()
 
@@ -421,7 +422,8 @@ if __name__ == '__main__':
 	for i in range(2):
 		sets.append(np.random.rand(1000))
 
-	pg.histogram(sets, 100)
+	pg.set_axis_options('linear', 10, 'log', 10)
+	pg.histogram(sets, 100, ['A', 'B'])
 
 	#Plot the scatter plot data
 	#pg.scatter_plot(scatter_plot_data_x, scatter_plot_data_y, trendline=True)
