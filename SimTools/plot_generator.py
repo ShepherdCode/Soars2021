@@ -31,7 +31,7 @@ class PlotGenerator:
 		self.__x_tick_label_font_size = 12
 		self.__figure_width = 6.4
 		self.__figure_height = 4.8
-		self.__COLORS = ['r', 'b', 'g', 'y', 'm', 'c'] #Use matplotlib's "Base Colors"
+		self.__COLORS = [(1, 0, 0, 1), (0, 0, 1, 1), (0, 1, 0, 1), (1, 1, 0, 1), (1, 0, 1, 1), (0, 1, 1, 1)]
 		if use_random: #Use random but non-similar colors 
 			seed = reproducability_seed if reproducability_seed != None else self.generate_seed()
 			random.seed(seed)
@@ -183,7 +183,7 @@ class PlotGenerator:
 			flier.set(markersize=0.5, alpha=0.5)
 		return box_plot
 
-	def histogram(self, data_sets, bins):
+	def histogram(self, data_sets, bins, data_set_names):
 		"""
 		Generates a histogram.
 		Cannot change x axis scale.
@@ -195,7 +195,9 @@ class PlotGenerator:
 
 		for i in range(len(data_sets)):
 			data = data_sets[i]
-			plt.hist(data, bins, color=self.select_color(i))
+			color = self.select_color(i)
+			color = (color[0], color[1], color[2], 0.75)
+			plt.hist(data, bins, color=color)
 
 		if self.__y_scale != None: #Needed because matplotlib does not like setting the base for linear plots
 			plt.yscale(self.__y_scale, basey=self.__y_base)
@@ -203,6 +205,7 @@ class PlotGenerator:
 		plt.title(self.__title)
 		plt.xlabel(self.__x_label)
 		plt.ylabel(self.__y_label)
+		plt.legend(data_set_names, loc='upper left')
 
 		plt.show()
 
@@ -395,7 +398,7 @@ if __name__ == '__main__':
 			heatmap_data[i][j] = i * j
 
 	#Set up the plot generator
-	pg = PlotGenerator(use_random=True)
+	pg = PlotGenerator()
 	pg.set_figure_options(width = 10)
 	pg.set_text_options(45, 'right', 0, 'center', 8)
 	pg.set_text('Title', 'X', 'Y', ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j'], None)
@@ -421,7 +424,8 @@ if __name__ == '__main__':
 	for i in range(2):
 		sets.append(np.random.rand(1000))
 
-	pg.histogram(sets, 100)
+	pg.set_axis_options('linear', 10, 'log', 10)
+	pg.histogram(sets, 100, ['A', 'B'])
 
 	#Plot the scatter plot data
 	#pg.scatter_plot(scatter_plot_data_x, scatter_plot_data_y, trendline=True)
