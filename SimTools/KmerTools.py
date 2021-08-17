@@ -109,3 +109,18 @@ class KmerTools():
                     else:
                         freqs[kmer] = 1.0*counts[kmer]/tot
         return freqs
+    def seqs_to_kmer_freqs(seqs,max_K):
+        tool = KmerTools()
+        collection = []
+        for seq in seqs:
+            # Critical to make new dict for each seq,
+            # but avoiding it somehow would speed up this loop.
+            counts = tool.make_dict_upto_K(max_K)
+            # Last param should be True when using Harvester.
+            counts = tool.update_count_one_K(counts,max_K,seq,True)
+            # Given counts for K=3, Harvester fills in counts for K=1,2.
+            counts = tool.harvest_counts_from_K(counts,max_K)
+            fdict = tool.count_to_frequency(counts,max_K)
+            freqs = list(fdict.values())
+            collection.append(freqs)
+        return np.asarray(collection)
