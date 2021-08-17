@@ -5,7 +5,8 @@ class DataPrep():
     def combine_pos_and_neg(self,seqs1,seqs0):
         len1=len(seqs1)
         len0=len(seqs0)
-        if False:  # high ram footprint high due to variable length seqs
+        USE_NUMPY=False
+        if USE_NUMPY:  # high ram footprint high due to variable length seqs
             L1=np.ones(len1,dtype=np.int8)
             L0=np.zeros(len0,dtype=np.int8)
             S1 = np.asarray(seqs1)
