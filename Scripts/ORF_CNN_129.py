@@ -19,7 +19,7 @@ time.strftime('%Y-%m-%d %H:%M:%S %Z', time.localtime(t))
 PC_SEQUENCES=32000   # how many protein-coding sequences
 NC_SEQUENCES=32000   # how many non-coding sequences
 PC_TESTS=1000
-NC_TESTS=1000
+NC_TESTS=100
 RNA_LEN=32            # how long is each sequence
 CDS_LEN=16            # min CDS len to be coding
 ALPHABET=4          # how many different letters are possible
@@ -27,7 +27,7 @@ INPUT_SHAPE_2D = (RNA_LEN,ALPHABET,1) # Conv2D needs 3D inputs
 INPUT_SHAPE = (RNA_LEN,ALPHABET) # Conv1D needs 2D inputs
 FILTERS = 16   # how many different patterns the model looks for
 NEURONS = 16
-DROP_RATE = 0.0
+DROP_RATE = 0.00
 WIDTH = 3   # how wide each pattern is, in bases
 STRIDE_2D = (1,1)  # For Conv2D how far in each direction
 STRIDE = 1 # For Conv1D, how far between pattern matches, in bases

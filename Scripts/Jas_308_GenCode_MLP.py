@@ -2,9 +2,12 @@
 # coding: utf-8
 
 # # MLP ORF to GenCode 
-# Use Wen et al 2019 conditions. Use MLP not CNN.
+# 
+# Use GenCode 38 and unrestricted data.  
+# Use model pre-trained on Simulated ORF.  
+# Exceeds RAM and crashes caused by storing RNAs in numpy array.  
 
-# In[23]:
+# In[1]:
 
 
 import time
@@ -14,7 +17,7 @@ def show_time():
 show_time()
 
 
-# In[24]:
+# In[2]:
 
 
 import numpy as np
@@ -34,7 +37,7 @@ from keras.callbacks import ModelCheckpoint
 from keras.models import load_model
 
 
-# In[25]:
+# In[3]:
 
 
 import sys
@@ -70,41 +73,41 @@ else:
         from SimTools.RNA_describe import ORF_counter
         from SimTools.GenCodeTools import GenCodeLoader
         from SimTools.KmerTools import KmerTools
-BESTMODELPATH=DATAPATH+"BestModel"  # saved on cloud instance and lost after logout
-LASTMODELPATH=DATAPATH+"LastModel"  # saved on Google Drive but requires login
+BESTMODELPATH=DATAPATH+"BestModel-304"  
+LASTMODELPATH=DATAPATH+"LastModel"  
 
 
 # ## Data Load
 
-# In[26]:
+# In[4]:
 
 
-PC_TRAINS=10000
-NC_TRAINS=10000
-PC_TESTS=2000
-NC_TESTS=2000   
-PC_LENS=(200,4000)
-NC_LENS=(250,3000)   # Wen used 3500 for hyperparameter, 3000 for train
-PC_FILENAME='gencode.v26.pc_transcripts.fa.gz'
-NC_FILENAME='gencode.v26.lncRNA_transcripts.fa.gz'
+PC_TRAINS=0
+NC_TRAINS=0
+PC_TESTS=20000
+NC_TESTS=20000   
+PC_LENS=(0,0)
+NC_LENS=(0,0)   
+PC_FILENAME='gencode.v38.pc_transcripts.fa.gz'
+NC_FILENAME='gencode.v38.lncRNA_transcripts.fa.gz'
 PC_FULLPATH=DATAPATH+PC_FILENAME
 NC_FULLPATH=DATAPATH+NC_FILENAME
 MAX_K = 3 
 INPUT_SHAPE=(None,84)  # 4^3 + 4^2 + 4^1
-NEURONS=128
-DROP_RATE=0.01
-EPOCHS=1000 # 1000 # 200
-SPLITS=5
-FOLDS=5   # make this 5 for serious testing
+NEURONS=32
+DROP_RATE=0.30
+EPOCHS=200
+SPLITS=3
+FOLDS=3   
 show_time()
 
 
-# In[27]:
+# In[5]:
 
 
 loader=GenCodeLoader()
 loader.set_label(1)
-loader.set_check_utr(False)
+loader.set_check_utr(False)  # not ORF-restricted
 pcdf=loader.load_file(PC_FULLPATH)
 print("PC seqs loaded:",len(pcdf))
 loader.set_label(0)
@@ -114,7 +117,7 @@ print("NC seqs loaded:",len(ncdf))
 show_time()
 
 
-# In[28]:
+# In[6]:
 
 
 def dataframe_length_filter(df,low_high):
@@ -125,10 +128,10 @@ def dataframe_length_filter(df,low_high):
 def dataframe_extract_sequence(df):
     return df['sequence'].tolist()
 
-pc_all = dataframe_extract_sequence(
-    dataframe_length_filter(pcdf,PC_LENS))
-nc_all = dataframe_extract_sequence(
-    dataframe_length_filter(ncdf,NC_LENS))
+pc_all = dataframe_extract_sequence(pcdf)
+    # dataframe_length_filter(pcdf,PC_LENS))  # length-restricted
+nc_all = dataframe_extract_sequence(ncdf)
+    # dataframe_length_filter(ncdf,NC_LENS))
 
 show_time()
 print("PC seqs pass filter:",len(pc_all))
@@ -138,56 +141,74 @@ pcdf=None
 ncdf=None
 
 
+# In[7]:
+
+
+pc_all = shuffle(pc_all)
+pc_all = pc_all[:PC_TESTS]
+nc_all = shuffle(nc_all)
+nc_all = nc_all[:NC_TESTS]
+
+
+# In[8]:
+
+
+# Describe the sequences
+def describe_sequences(list_of_seq):
+    oc = ORF_counter()
+    num_seq = len(list_of_seq)
+    rna_lens = np.zeros(num_seq)
+    orf_lens = np.zeros(num_seq)
+    for i in range(0,num_seq):
+        rna_len = len(list_of_seq[i])
+        rna_lens[i] = rna_len
+        oc.set_sequence(list_of_seq[i])
+        orf_len = oc.get_max_orf_len()
+        orf_lens[i] = orf_len
+    print ("Average RNA length:",rna_lens.mean())
+    print ("Average ORF length:",orf_lens.mean())
+    
+print("Simulated sequence characteristics:")
+print("PC seqs")
+describe_sequences(pc_all)
+print("NC seqs")
+describe_sequences(nc_all)
+show_time()
+
+
 # ## Data Prep
 
-# In[29]:
+# In[9]:
 
 
-pc_train=pc_all[:PC_TRAINS] 
-nc_train=nc_all[:NC_TRAINS]
-print("PC train, NC train:",len(pc_train),len(nc_train))
-pc_test=pc_all[PC_TRAINS:PC_TRAINS+PC_TESTS] 
-nc_test=nc_all[NC_TRAINS:NC_TRAINS+PC_TESTS]
-print("PC test, NC test:",len(pc_test),len(nc_test))
-# Garbage collection
-pc_all=None
-nc_all=None
-
-
-# In[30]:
-
-
-def prepare_x_and_y(seqs1,seqs0):
+def combine_pos_and_neg(seqs1,seqs0):
     len1=len(seqs1)
     len0=len(seqs0)
-    total=len1+len0
     L1=np.ones(len1,dtype=np.int8)
     L0=np.zeros(len0,dtype=np.int8)
     S1 = np.asarray(seqs1)
     S0 = np.asarray(seqs0)
     all_labels = np.concatenate((L1,L0))
     all_seqs = np.concatenate((S1,S0))  
-    # interleave (uses less RAM than shuffle)
-    for i in range(0,len0):
-        all_labels[i*2] = L0[i]
-        all_seqs[i*2] = S0[i]
-        all_labels[i*2+1] = L1[i]
-        all_seqs[i*2+1] = S1[i]
-    return all_seqs,all_labels  # use this to test unshuffled
+    #X = shuffle(all_seqs,random_state=3) # sklearn.utils.shuffle 
+    #y = shuffle(all_labels,random_state=3) # sklearn.utils.shuffle 
     X,y = shuffle(all_seqs,all_labels) # sklearn.utils.shuffle 
     return X,y
-Xseq,y=prepare_x_and_y(pc_train,nc_train)
-print(Xseq[:3])
-print(y[:3])
+Xseq,y=combine_pos_and_neg(pc_all,nc_all)
+print("The first few shuffled labels:")
+print(y[:30])
+pc_all=None
+nc_all=None
 show_time()
 
 
-# In[31]:
+# In[ ]:
 
 
 def seqs_to_kmer_freqs(seqs,max_K):
     tool = KmerTools()  # from SimTools
     collection = []
+    debug = 0
     for seq in seqs:
         counts = tool.make_dict_upto_K(max_K)
         # Last param should be True when using Harvester.
@@ -197,88 +218,46 @@ def seqs_to_kmer_freqs(seqs,max_K):
         fdict = tool.count_to_frequency(counts,max_K)
         freqs = list(fdict.values())
         collection.append(freqs)
+        if (debug<3):
+            print(fdict)
+            debug += 1;
     return np.asarray(collection)
 Xfrq=seqs_to_kmer_freqs(Xseq,MAX_K)
-# Garbage collection
+print("First few K-mer frequency matrices:")
+print(Xfrq[:3])
 Xseq = None
 show_time()
 
 
-# ## Build and train a neural network
-
-# In[32]:
+# In[ ]:
 
 
-def make_DNN():
-    dt=np.float32
-    print("make_DNN")
-    print("input shape:",INPUT_SHAPE)
-    dnn = Sequential()
-    dnn.add(Dense(NEURONS,activation="sigmoid",dtype=dt))  # relu doesn't work as well
-    dnn.add(Dropout(DROP_RATE))
-    dnn.add(Dense(NEURONS,activation="sigmoid",dtype=dt)) 
-    dnn.add(Dropout(DROP_RATE))
-    dnn.add(Dense(1,activation="sigmoid",dtype=dt))   
-    dnn.compile(optimizer='adam',    # adadelta doesn't work as well
-                loss=BinaryCrossentropy(from_logits=False),
-                metrics=['accuracy'])   # add to default metrics=loss
-    dnn.build(input_shape=INPUT_SHAPE) 
-    return dnn
-model = make_DNN()
-print(model.summary())
+# Assume X and y were shuffled.
+train_size=PC_TRAINS+NC_TRAINS
+X_train=Xfrq[:train_size] 
+X_test=Xfrq[train_size:]
+y_train=y[:train_size] 
+y_test=y[train_size:]
+print("Training set size=",len(X_train),"=",len(y_train))
+print("Reserved test set size=",len(X_test),"=",len(y_test))
+Xfrq=None
+y=None
+show_time()
 
 
-# In[33]:
+# ## Load a trained neural network
 
-
-def do_cross_validation(X,y):
-    cv_scores = []
-    fold=0
-    mycallbacks = [ModelCheckpoint(
-        filepath=BESTMODELPATH, save_best_only=True, 
-        monitor='val_accuracy', mode='max')]   
-    # When shuffle=True, the valid indices are a random subset.
-    splitter = KFold(n_splits=SPLITS,shuffle=True) 
-    model = None
-    for train_index,valid_index in splitter.split(X):
-        if fold < FOLDS:
-            fold += 1
-            X_train=X[train_index] # inputs for training
-            y_train=y[train_index] # labels for training
-            X_valid=X[valid_index] # inputs for validation
-            y_valid=y[valid_index] # labels for validation
-            print("MODEL")
-            # Call constructor on each CV. Else, continually improves the same model.
-            model = model = make_DNN()
-            print("FIT")  # model.fit() implements learning
-            start_time=time.time()
-            history=model.fit(X_train, y_train, 
-                    epochs=EPOCHS, 
-                    verbose=1,  # ascii art while learning
-                    callbacks=mycallbacks,   # called at end of each epoch
-                    validation_data=(X_valid,y_valid))
-            end_time=time.time()
-            elapsed_time=(end_time-start_time)                        
-            print("Fold %d, %d epochs, %d sec"%(fold,EPOCHS,elapsed_time))
-            # print(history.history.keys())  # all these keys will be shown in figure
-            pd.DataFrame(history.history).plot(figsize=(8,5))
-            plt.grid(True)
-            plt.gca().set_ylim(0,1) # any losses > 1 will be off the scale
-            plt.show()
-    return model  # parameters at end of training
-
-
-# In[34]:
+# In[ ]:
 
 
 show_time()
-last_model = do_cross_validation(Xfrq,y)
-last_model.save(LASTMODELPATH)
+model = load_model(BESTMODELPATH)
+print(model.summary())
 
 
 # ## Test the neural network
 
-# In[35]:
+# In[ ]:
 
 
 def show_test_AUC(model,X,y):
@@ -301,24 +280,17 @@ def show_test_accuracy(model,X,y):
     print("%s: %.2f%%" % (model.metrics_names[1], scores[1]*100))
 
 
-# In[36]:
+# In[ ]:
 
 
 print("Accuracy on test data.")
-print("Prepare...")
 show_time()
-Xseq,y=prepare_x_and_y(pc_test,nc_test)
-print("Extract K-mer features...")
-show_time()
-Xfrq=seqs_to_kmer_freqs(Xseq,MAX_K)
-print("Plot...")
-show_time()
-show_test_AUC(last_model,Xfrq,y)
-show_test_accuracy(last_model,Xfrq,y)
+show_test_AUC(model,X_test,y_test)
+show_test_accuracy(model,X_test,y_test)
 show_time()
 
 
-# In[36]:
+# In[ ]:
 
 
 

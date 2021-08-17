@@ -1,10 +1,14 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# # MLP ORF to GenCode 
-# Use Wen et al 2019 conditions. Use MLP not CNN.
+# # MLP on Simulated ORFs  
+# Start with ORF_MLP_118 which had the simulator bug fix.  
+# Evaluate MLP with fewer neurons.  
+# Train on copious simulated data.  
+# Use uniform but realistic RNA lengths.  
+# Similar 74% accuracy.
 
-# In[23]:
+# In[1]:
 
 
 import time
@@ -14,13 +18,31 @@ def show_time():
 show_time()
 
 
-# In[24]:
+# In[2]:
+
+
+PC_TRAINS=50000
+NC_TRAINS=50000
+PC_TESTS=5000
+NC_TESTS=5000   
+RNA_LEN=1000  
+MAX_K = 3 
+INPUT_SHAPE=(None,84)  # 4^3 + 4^2 + 4^1
+NEURONS=32
+DROP_RATE=0.30
+EPOCHS=200
+SPLITS=3
+FOLDS=3   # make this 5 for serious testing
+
+
+# In[3]:
 
 
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-from sklearn.utils import shuffle
+
+from sklearn.utils import shuffle 
 from sklearn.model_selection import KFold
 from sklearn.model_selection import cross_val_score
 from sklearn.metrics import roc_curve
@@ -34,7 +56,7 @@ from keras.callbacks import ModelCheckpoint
 from keras.models import load_model
 
 
-# In[25]:
+# In[4]:
 
 
 import sys
@@ -55,10 +77,10 @@ if IN_COLAB:
     with open('RNA_describe.py', 'w') as f:
         f.write(r.text)  
     from RNA_describe import ORF_counter
-    r = requests.get('https://raw.githubusercontent.com/ShepherdCode/Soars2021/master/SimTools/GenCodeTools.py')
-    with open('GenCodeTools.py', 'w') as f:
+    r = requests.get('https://raw.githubusercontent.com/ShepherdCode/Soars2021/master/SimTools/RNA_gen.py')
+    with open('RNA_gen.py', 'w') as f:
         f.write(r.text)  
-    from GenCodeTools import GenCodeLoader
+    from RNA_gen import Collection_Generator, Transcript_Oracle
     r = requests.get('https://raw.githubusercontent.com/ShepherdCode/Soars2021/master/SimTools/KmerTools.py')
     with open('KmerTools.py', 'w') as f:
         f.write(r.text)  
@@ -68,126 +90,95 @@ else:
         DATAPATH='data/'  # must end in "/"
         sys.path.append("..") # append parent dir in order to use sibling dirs
         from SimTools.RNA_describe import ORF_counter
-        from SimTools.GenCodeTools import GenCodeLoader
+        from SimTools.RNA_gen import Collection_Generator, Transcript_Oracle
         from SimTools.KmerTools import KmerTools
 BESTMODELPATH=DATAPATH+"BestModel"  # saved on cloud instance and lost after logout
 LASTMODELPATH=DATAPATH+"LastModel"  # saved on Google Drive but requires login
 
 
 # ## Data Load
+# 
 
-# In[26]:
+# In[5]:
 
-
-PC_TRAINS=10000
-NC_TRAINS=10000
-PC_TESTS=2000
-NC_TESTS=2000   
-PC_LENS=(200,4000)
-NC_LENS=(250,3000)   # Wen used 3500 for hyperparameter, 3000 for train
-PC_FILENAME='gencode.v26.pc_transcripts.fa.gz'
-NC_FILENAME='gencode.v26.lncRNA_transcripts.fa.gz'
-PC_FULLPATH=DATAPATH+PC_FILENAME
-NC_FULLPATH=DATAPATH+NC_FILENAME
-MAX_K = 3 
-INPUT_SHAPE=(None,84)  # 4^3 + 4^2 + 4^1
-NEURONS=128
-DROP_RATE=0.01
-EPOCHS=1000 # 1000 # 200
-SPLITS=5
-FOLDS=5   # make this 5 for serious testing
-show_time()
-
-
-# In[27]:
-
-
-loader=GenCodeLoader()
-loader.set_label(1)
-loader.set_check_utr(False)
-pcdf=loader.load_file(PC_FULLPATH)
-print("PC seqs loaded:",len(pcdf))
-loader.set_label(0)
-loader.set_check_utr(False)
-ncdf=loader.load_file(NC_FULLPATH)
-print("NC seqs loaded:",len(ncdf))
-show_time()
-
-
-# In[28]:
-
-
-def dataframe_length_filter(df,low_high):
-    (low,high)=low_high
-    # The pandas query language is strange, 
-    # but this is MUCH faster than loop & drop.
-    return df[ (df['seqlen']>=low) & (df['seqlen']<=high) ]
-def dataframe_extract_sequence(df):
-    return df['sequence'].tolist()
-
-pc_all = dataframe_extract_sequence(
-    dataframe_length_filter(pcdf,PC_LENS))
-nc_all = dataframe_extract_sequence(
-    dataframe_length_filter(ncdf,NC_LENS))
 
 show_time()
-print("PC seqs pass filter:",len(pc_all))
-print("NC seqs pass filter:",len(nc_all))
-# Garbage collection to reduce RAM footprint
-pcdf=None
-ncdf=None
+def make_generators(seq_len):
+    pcgen = Collection_Generator()  
+    pcgen.get_len_oracle().set_mean(seq_len)
+    pcgen.set_seq_oracle(Transcript_Oracle())
+    ncgen = Collection_Generator()  
+    ncgen.get_len_oracle().set_mean(seq_len)
+    return pcgen,ncgen
+
+pc_sim,nc_sim = make_generators(RNA_LEN)
+pc_all = pc_sim.get_sequences(PC_TRAINS+PC_TESTS)
+nc_all = nc_sim.get_sequences(NC_TRAINS+NC_TESTS)
+print("Generated",len(pc_all),"PC seqs")
+print("Generated",len(nc_all),"NC seqs")
+pc_sim=None
+nc_sim=None
+
+
+# In[6]:
+
+
+# Describe the sequences
+def describe_sequences(list_of_seq):
+    oc = ORF_counter()
+    num_seq = len(list_of_seq)
+    rna_lens = np.zeros(num_seq)
+    orf_lens = np.zeros(num_seq)
+    for i in range(0,num_seq):
+        rna_len = len(list_of_seq[i])
+        rna_lens[i] = rna_len
+        oc.set_sequence(list_of_seq[i])
+        orf_len = oc.get_max_orf_len()
+        orf_lens[i] = orf_len
+    print ("Average RNA length:",rna_lens.mean())
+    print ("Average ORF length:",orf_lens.mean())
+    
+print("Simulated sequence characteristics:")
+print("PC seqs")
+describe_sequences(pc_all)
+print("NC seqs")
+describe_sequences(nc_all)
+show_time()
 
 
 # ## Data Prep
 
-# In[29]:
+# In[7]:
 
 
-pc_train=pc_all[:PC_TRAINS] 
-nc_train=nc_all[:NC_TRAINS]
-print("PC train, NC train:",len(pc_train),len(nc_train))
-pc_test=pc_all[PC_TRAINS:PC_TRAINS+PC_TESTS] 
-nc_test=nc_all[NC_TRAINS:NC_TRAINS+PC_TESTS]
-print("PC test, NC test:",len(pc_test),len(nc_test))
-# Garbage collection
-pc_all=None
-nc_all=None
-
-
-# In[30]:
-
-
-def prepare_x_and_y(seqs1,seqs0):
+def combine_pos_and_neg(seqs1,seqs0):
     len1=len(seqs1)
     len0=len(seqs0)
-    total=len1+len0
     L1=np.ones(len1,dtype=np.int8)
     L0=np.zeros(len0,dtype=np.int8)
     S1 = np.asarray(seqs1)
     S0 = np.asarray(seqs0)
     all_labels = np.concatenate((L1,L0))
     all_seqs = np.concatenate((S1,S0))  
-    # interleave (uses less RAM than shuffle)
-    for i in range(0,len0):
-        all_labels[i*2] = L0[i]
-        all_seqs[i*2] = S0[i]
-        all_labels[i*2+1] = L1[i]
-        all_seqs[i*2+1] = S1[i]
-    return all_seqs,all_labels  # use this to test unshuffled
+    #X = shuffle(all_seqs,random_state=3) # sklearn.utils.shuffle 
+    #y = shuffle(all_labels,random_state=3) # sklearn.utils.shuffle 
     X,y = shuffle(all_seqs,all_labels) # sklearn.utils.shuffle 
     return X,y
-Xseq,y=prepare_x_and_y(pc_train,nc_train)
-print(Xseq[:3])
-print(y[:3])
+Xseq,y=combine_pos_and_neg(pc_all,nc_all)
+print("The first few shuffled labels:")
+print(y[:30])
+pc_all=None
+nc_all=None
 show_time()
 
 
-# In[31]:
+# In[8]:
 
 
 def seqs_to_kmer_freqs(seqs,max_K):
     tool = KmerTools()  # from SimTools
     collection = []
+    debug = 0
     for seq in seqs:
         counts = tool.make_dict_upto_K(max_K)
         # Last param should be True when using Harvester.
@@ -197,16 +188,36 @@ def seqs_to_kmer_freqs(seqs,max_K):
         fdict = tool.count_to_frequency(counts,max_K)
         freqs = list(fdict.values())
         collection.append(freqs)
+        if (debug<3):
+            print(fdict)
+            debug += 1;
     return np.asarray(collection)
 Xfrq=seqs_to_kmer_freqs(Xseq,MAX_K)
-# Garbage collection
+print("First few K-mer frequency matrices:")
+print(Xfrq[:3])
 Xseq = None
 show_time()
 
 
-# ## Build and train a neural network
+# In[9]:
 
-# In[32]:
+
+# Assume X and y were shuffled.
+train_size=PC_TRAINS+NC_TRAINS
+X_train=Xfrq[:train_size] 
+X_test=Xfrq[train_size:]
+y_train=y[:train_size] 
+y_test=y[train_size:]
+print("Training set size=",len(X_train),"=",len(y_train))
+print("Reserved test set size=",len(X_test),"=",len(y_test))
+Xfrq=None
+y=None
+show_time()
+
+
+# ## Neural network
+
+# In[10]:
 
 
 def make_DNN():
@@ -214,12 +225,14 @@ def make_DNN():
     print("make_DNN")
     print("input shape:",INPUT_SHAPE)
     dnn = Sequential()
-    dnn.add(Dense(NEURONS,activation="sigmoid",dtype=dt))  # relu doesn't work as well
+    dnn.add(Dense(NEURONS,activation="sigmoid",dtype=dt))  
+    dnn.add(Dropout(DROP_RATE))
+    dnn.add(Dense(NEURONS,activation="sigmoid",dtype=dt)) 
     dnn.add(Dropout(DROP_RATE))
     dnn.add(Dense(NEURONS,activation="sigmoid",dtype=dt)) 
     dnn.add(Dropout(DROP_RATE))
     dnn.add(Dense(1,activation="sigmoid",dtype=dt))   
-    dnn.compile(optimizer='adam',    # adadelta doesn't work as well
+    dnn.compile(optimizer='adam',    
                 loss=BinaryCrossentropy(from_logits=False),
                 metrics=['accuracy'])   # add to default metrics=loss
     dnn.build(input_shape=INPUT_SHAPE) 
@@ -228,7 +241,7 @@ model = make_DNN()
 print(model.summary())
 
 
-# In[33]:
+# In[11]:
 
 
 def do_cross_validation(X,y):
@@ -238,7 +251,8 @@ def do_cross_validation(X,y):
         filepath=BESTMODELPATH, save_best_only=True, 
         monitor='val_accuracy', mode='max')]   
     # When shuffle=True, the valid indices are a random subset.
-    splitter = KFold(n_splits=SPLITS,shuffle=True) 
+    # No need to shuffle here assuming data was shuffled above.
+    splitter = KFold(n_splits=SPLITS,shuffle=False) 
     model = None
     for train_index,valid_index in splitter.split(X):
         if fold < FOLDS:
@@ -268,17 +282,15 @@ def do_cross_validation(X,y):
     return model  # parameters at end of training
 
 
-# In[34]:
+# In[12]:
 
 
 show_time()
-last_model = do_cross_validation(Xfrq,y)
-last_model.save(LASTMODELPATH)
+last_model = do_cross_validation(X_train,y_train)
+best_model = load_model(BESTMODELPATH)
 
 
-# ## Test the neural network
-
-# In[35]:
+# In[15]:
 
 
 def show_test_AUC(model,X,y):
@@ -301,24 +313,27 @@ def show_test_accuracy(model,X,y):
     print("%s: %.2f%%" % (model.metrics_names[1], scores[1]*100))
 
 
-# In[36]:
+# In[17]:
+
+
+print("Accuracy on training data.")
+show_time()
+show_test_AUC(best_model,X_train,y_train)
+show_test_accuracy(best_model,X_train,y_train)
+show_time()
+
+
+# In[18]:
 
 
 print("Accuracy on test data.")
-print("Prepare...")
 show_time()
-Xseq,y=prepare_x_and_y(pc_test,nc_test)
-print("Extract K-mer features...")
-show_time()
-Xfrq=seqs_to_kmer_freqs(Xseq,MAX_K)
-print("Plot...")
-show_time()
-show_test_AUC(last_model,Xfrq,y)
-show_test_accuracy(last_model,Xfrq,y)
+show_test_AUC(last_model,X_test,y_test)
+show_test_accuracy(last_model,X_test,y_test)
 show_time()
 
 
-# In[36]:
+# In[ ]:
 
 
 

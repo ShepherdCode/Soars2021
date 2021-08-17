@@ -269,7 +269,7 @@ def do_cross_validation(X,y):
     return model  # parameters at end of training
 
 
-# In[ ]:
+# In[12]:
 
 
 show_time()
@@ -279,7 +279,7 @@ last_model.save(LASTMODELPATH)
 
 # ## Test the neural network
 
-# In[ ]:
+# In[13]:
 
 
 def show_test_AUC(model,X,y):
@@ -302,7 +302,7 @@ def show_test_accuracy(model,X,y):
     print("%s: %.2f%%" % (model.metrics_names[1], scores[1]*100))
 
 
-# In[ ]:
+# In[14]:
 
 
 print("Accuracy on test data.")
@@ -319,7 +319,7 @@ show_test_accuracy(last_model,Xfrq,y)
 show_time()
 
 
-# In[ ]:
+# In[14]:
 
 
 

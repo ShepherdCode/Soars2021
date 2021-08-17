@@ -2,9 +2,12 @@
 # coding: utf-8
 
 # # MLP ORF to GenCode 
-# Use Wen et al 2019 conditions. Use MLP not CNN.
+# 
+# Use GenCode 38 and ORF restricted data.
+# Use Miller MLP = 2 * Dense(16) (but unlike Miller, one layer of 10% drop).
+# 
 
-# In[23]:
+# In[1]:
 
 
 import time
@@ -14,7 +17,7 @@ def show_time():
 show_time()
 
 
-# In[24]:
+# In[2]:
 
 
 import numpy as np
@@ -34,7 +37,7 @@ from keras.callbacks import ModelCheckpoint
 from keras.models import load_model
 
 
-# In[25]:
+# In[3]:
 
 
 import sys
@@ -70,41 +73,41 @@ else:
         from SimTools.RNA_describe import ORF_counter
         from SimTools.GenCodeTools import GenCodeLoader
         from SimTools.KmerTools import KmerTools
-BESTMODELPATH=DATAPATH+"BestModel"  # saved on cloud instance and lost after logout
-LASTMODELPATH=DATAPATH+"LastModel"  # saved on Google Drive but requires login
+BESTMODELPATH=DATAPATH+"BestModel-121"  # saved on cloud instance and lost after logout
+LASTMODELPATH=DATAPATH+"LastModel-121"  # saved on Google Drive but requires login
 
 
 # ## Data Load
 
-# In[26]:
+# In[4]:
 
 
-PC_TRAINS=10000
-NC_TRAINS=10000
-PC_TESTS=2000
-NC_TESTS=2000   
+PC_TRAINS=20000
+NC_TRAINS=20000
+PC_TESTS=5000
+NC_TESTS=5000   
 PC_LENS=(200,4000)
-NC_LENS=(250,3000)   # Wen used 3500 for hyperparameter, 3000 for train
-PC_FILENAME='gencode.v26.pc_transcripts.fa.gz'
-NC_FILENAME='gencode.v26.lncRNA_transcripts.fa.gz'
+NC_LENS=(200,4000)   # Wen used 3500 for hyperparameter, 3000 for train
+PC_FILENAME='gencode.v38.pc_transcripts.fa.gz'
+NC_FILENAME='gencode.v38.lncRNA_transcripts.fa.gz'
 PC_FULLPATH=DATAPATH+PC_FILENAME
 NC_FULLPATH=DATAPATH+NC_FILENAME
 MAX_K = 3 
 INPUT_SHAPE=(None,84)  # 4^3 + 4^2 + 4^1
-NEURONS=128
-DROP_RATE=0.01
+NEURONS=16
+DROP_RATE=0.10
 EPOCHS=1000 # 1000 # 200
 SPLITS=5
 FOLDS=5   # make this 5 for serious testing
 show_time()
 
 
-# In[27]:
+# In[5]:
 
 
 loader=GenCodeLoader()
 loader.set_label(1)
-loader.set_check_utr(False)
+loader.set_check_utr(True)
 pcdf=loader.load_file(PC_FULLPATH)
 print("PC seqs loaded:",len(pcdf))
 loader.set_label(0)
@@ -114,7 +117,7 @@ print("NC seqs loaded:",len(ncdf))
 show_time()
 
 
-# In[28]:
+# In[6]:
 
 
 def dataframe_length_filter(df,low_high):
@@ -140,7 +143,7 @@ ncdf=None
 
 # ## Data Prep
 
-# In[29]:
+# In[7]:
 
 
 pc_train=pc_all[:PC_TRAINS] 
@@ -154,7 +157,7 @@ pc_all=None
 nc_all=None
 
 
-# In[30]:
+# In[8]:
 
 
 def prepare_x_and_y(seqs1,seqs0):
@@ -182,7 +185,7 @@ print(y[:3])
 show_time()
 
 
-# In[31]:
+# In[9]:
 
 
 def seqs_to_kmer_freqs(seqs,max_K):
@@ -206,7 +209,7 @@ show_time()
 
 # ## Build and train a neural network
 
-# In[32]:
+# In[10]:
 
 
 def make_DNN():
@@ -228,7 +231,7 @@ model = make_DNN()
 print(model.summary())
 
 
-# In[33]:
+# In[11]:
 
 
 def do_cross_validation(X,y):
@@ -268,7 +271,7 @@ def do_cross_validation(X,y):
     return model  # parameters at end of training
 
 
-# In[34]:
+# In[12]:
 
 
 show_time()
@@ -278,7 +281,7 @@ last_model.save(LASTMODELPATH)
 
 # ## Test the neural network
 
-# In[35]:
+# In[13]:
 
 
 def show_test_AUC(model,X,y):
@@ -301,7 +304,7 @@ def show_test_accuracy(model,X,y):
     print("%s: %.2f%%" % (model.metrics_names[1], scores[1]*100))
 
 
-# In[36]:
+# In[14]:
 
 
 print("Accuracy on test data.")
@@ -318,7 +321,7 @@ show_test_accuracy(last_model,Xfrq,y)
 show_time()
 
 
-# In[36]:
+# In[14]:
 
 
 

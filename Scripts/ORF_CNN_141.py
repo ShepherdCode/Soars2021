@@ -5,7 +5,7 @@
 # 
 # Use variable number of bases between START and STOP. Thus, ncRNA will have its STOP out-of-frame or too close to the START, and pcRNA will have its STOP in-frame and far from the START.
 
-# In[1]:
+# In[109]:
 
 
 import time 
@@ -13,30 +13,30 @@ t = time.time()
 time.strftime('%Y-%m-%d %H:%M:%S %Z', time.localtime(t))
 
 
-# In[2]:
+# In[110]:
 
 
-PC_SEQUENCES= 32000  # how many protein-coding sequences
-NC_SEQUENCES= 32000   # how many non-coding sequences
+PC_SEQUENCES=10000   # how many protein-coding sequences
+NC_SEQUENCES=10000   # how many non-coding sequences
 PC_TESTS=1000
 NC_TESTS=1000
-RNA_LEN=36            # how long is each sequence
-CDS_LEN=18            # min CDS len to be coding
+RNA_LEN=32            # how long is each sequence
+CDS_LEN=16            # min CDS len to be coding
 ALPHABET=4          # how many different letters are possible
 INPUT_SHAPE_2D = (RNA_LEN,ALPHABET,1) # Conv2D needs 3D inputs
 INPUT_SHAPE = (RNA_LEN,ALPHABET) # Conv1D needs 2D inputs
 FILTERS = 16   # how many different patterns the model looks for
 NEURONS = 16
-DROP_RATE = 0.4
+DROP_RATE = 0.8
 WIDTH = 3   # how wide each pattern is, in bases
 STRIDE_2D = (1,1)  # For Conv2D how far in each direction
 STRIDE = 1 # For Conv1D, how far between pattern matches, in bases
-EPOCHS=400  # how many times to train on all the data
+EPOCHS=100  # how many times to train on all the data
 SPLITS=3  # SPLITS=3 means train on 2/3 and validate on 1/3 
 FOLDS=3  # train the model this many times (range 1 to SPLITS)
 
 
-# In[3]:
+# In[111]:
 
 
 import sys
@@ -62,10 +62,6 @@ if IN_COLAB:
     with open('RNA_prep.py', 'w') as f:
         f.write(r.text)  
     from RNA_prep import prepare_inputs_len_x_alphabet
-    r = requests.get('https://raw.githubusercontent.com/ShepherdCode/Soars2021/master/SimTools/ORF_eliminator.py')
-    with open('ORF_eliminator.py', 'w') as f:
-        f.write(r.text)  
-    from ORF_eliminator import *
 else:
         print("CoLab not working. On my PC, use relative paths.")
         DATAPATH='data/'  # must end in "/"
@@ -77,7 +73,7 @@ MODELPATH="BestModel"  # saved on cloud instance and lost after logout
 #MODELPATH=DATAPATH+MODELPATH  # saved on Google Drive but requires login
 
 
-# In[4]:
+# In[112]:
 
 
 from os import listdir
@@ -105,19 +101,17 @@ mycmap = colors.ListedColormap(['red','blue'])  # list color for label 0 then 1
 np.set_printoptions(precision=2)
 
 
-# In[5]:
+# In[113]:
 
 
-random = Random_Sequence()
-nc_all =[]
-pc_all = random.generate_sequence_withORF(RNA_LEN, PC_SEQUENCES, CDS_LEN)
-randomSequence = random.generate_sequence(RNA_LEN, NC_SEQUENCES)
-noncoding = ORF_eliminator()
-for sequence in randomSequence:
-  nc_all.append(noncoding.eliminate_ORF(sequence, CDS_LEN))
+rbo=Random_Base_Oracle(RNA_LEN,True)
+pc_all,nc_all = rbo.get_partitioned_sequences(CDS_LEN,10) # just testing
+pc_all,nc_all = rbo.get_partitioned_sequences(CDS_LEN,PC_SEQUENCES+PC_TESTS)
+print("Use",len(pc_all),"PC seqs")
+print("Use",len(nc_all),"NC seqs")
 
 
-# In[ ]:
+# In[114]:
 
 
 # Describe the sequences
@@ -142,7 +136,7 @@ print("NC seqs")
 describe_sequences(nc_all)
 
 
-# In[ ]:
+# In[115]:
 
 
 pc_train=pc_all[:PC_SEQUENCES]
@@ -151,7 +145,7 @@ pc_test=pc_all[PC_SEQUENCES:]
 nc_test=nc_all[NC_SEQUENCES:]
 
 
-# In[ ]:
+# In[116]:
 
 
 # Use code from our SimTools library.
@@ -159,7 +153,7 @@ X,y = prepare_inputs_len_x_alphabet(pc_train,nc_train,ALPHABET) # shuffles
 print("Data ready.")
 
 
-# In[ ]:
+# In[117]:
 
 
 def make_DNN():
@@ -171,9 +165,9 @@ def make_DNN():
             input_shape=INPUT_SHAPE))
     dnn.add(Conv1D(filters=FILTERS,kernel_size=WIDTH,strides=STRIDE,padding="same"))
     dnn.add(MaxPooling1D())
-    #dnn.add(Conv1D(filters=FILTERS,kernel_size=WIDTH,strides=STRIDE,padding="same"))
-    #dnn.add(Conv1D(filters=FILTERS,kernel_size=WIDTH,strides=STRIDE,padding="same"))
-    #dnn.add(MaxPooling1D())
+    dnn.add(Conv1D(filters=FILTERS,kernel_size=WIDTH,strides=STRIDE,padding="same"))
+    dnn.add(Conv1D(filters=FILTERS,kernel_size=WIDTH,strides=STRIDE,padding="same"))
+    dnn.add(MaxPooling1D())
     dnn.add(Flatten())
     dnn.add(Dense(NEURONS,activation="sigmoid",dtype=np.float32))   
     dnn.add(Dropout(DROP_RATE))
@@ -190,7 +184,7 @@ model = make_DNN()
 print(model.summary())
 
 
-# In[ ]:
+# In[118]:
 
 
 from keras.callbacks import ModelCheckpoint
@@ -228,13 +222,13 @@ def do_cross_validation(X,y):
             plt.show()
 
 
-# In[ ]:
+# In[119]:
 
 
 do_cross_validation(X,y)
 
 
-# In[ ]:
+# In[120]:
 
 
 from keras.models import load_model
@@ -249,7 +243,7 @@ print("Test on",len(nc_test),"NC seqs")
 print("%s: %.2f%%" % (best_model.metrics_names[1], scores[1]*100))
 
 
-# In[ ]:
+# In[121]:
 
 
 from sklearn.metrics import roc_curve
@@ -270,14 +264,14 @@ plt.show()
 print("%s: %.2f%%" %('AUC',bm_auc*100.0))
 
 
-# In[ ]:
+# In[122]:
 
 
 t = time.time()
 time.strftime('%Y-%m-%d %H:%M:%S %Z', time.localtime(t))
 
 
-# In[ ]:
+# In[122]:
 
 
 

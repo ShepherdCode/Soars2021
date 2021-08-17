@@ -1,10 +1,14 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# # MLP ORF to GenCode 
-# Use Wen et al 2019 conditions. Use MLP not CNN.
+# # Wen CNN 
+# 
+# Notebook 102 simulated the CNN approach of Wen et al. 2019.  
+# The model was trained on human GenCode 26 just like Wen.  
+# Now, as Wen did, test the human model on mouse.
+# 
 
-# In[23]:
+# In[1]:
 
 
 import time
@@ -14,7 +18,7 @@ def show_time():
 show_time()
 
 
-# In[24]:
+# In[2]:
 
 
 import numpy as np
@@ -27,6 +31,7 @@ from sklearn.metrics import roc_curve
 from sklearn.metrics import roc_auc_score
 
 from keras.models import Sequential
+from keras.layers import Conv2D,MaxPooling2D
 from keras.layers import Dense,Embedding,Dropout
 from keras.layers import Flatten,TimeDistributed
 from keras.losses import BinaryCrossentropy
@@ -34,7 +39,7 @@ from keras.callbacks import ModelCheckpoint
 from keras.models import load_model
 
 
-# In[25]:
+# In[3]:
 
 
 import sys
@@ -70,41 +75,45 @@ else:
         from SimTools.RNA_describe import ORF_counter
         from SimTools.GenCodeTools import GenCodeLoader
         from SimTools.KmerTools import KmerTools
-BESTMODELPATH=DATAPATH+"BestModel"  # saved on cloud instance and lost after logout
-LASTMODELPATH=DATAPATH+"LastModel"  # saved on Google Drive but requires login
+BESTMODELPATH=DATAPATH+"BestModel-Wen"  # saved on cloud instance and lost after logout
+LASTMODELPATH=DATAPATH+"LastModel-Wen"  # saved on Google Drive but requires login
 
 
 # ## Data Load
 
-# In[26]:
+# In[4]:
 
 
-PC_TRAINS=10000
-NC_TRAINS=10000
+PC_TRAINS=8000
+NC_TRAINS=8000
 PC_TESTS=2000
 NC_TESTS=2000   
 PC_LENS=(200,4000)
-NC_LENS=(250,3000)   # Wen used 3500 for hyperparameter, 3000 for train
-PC_FILENAME='gencode.v26.pc_transcripts.fa.gz'
-NC_FILENAME='gencode.v26.lncRNA_transcripts.fa.gz'
+NC_LENS=(200,4000)   
+PC_FILENAME='gencode.vM13.pc_transcripts.fa.gz'
+NC_FILENAME='gencode.vM13.lncRNA_transcripts.fa.gz'  # mouse
 PC_FULLPATH=DATAPATH+PC_FILENAME
 NC_FULLPATH=DATAPATH+NC_FILENAME
 MAX_K = 3 
-INPUT_SHAPE=(None,84)  # 4^3 + 4^2 + 4^1
-NEURONS=128
-DROP_RATE=0.01
-EPOCHS=1000 # 1000 # 200
+# With K={1,2,3}, num K-mers is 4^3 + 4^2 + 4^1 = 84.
+# Wen specified 17x20 which is impossible.
+# The factors of 84 are 1, 2, 3, 4, 6, 7, 12, 14, 21, 28, 42 and 84.
+FRQ_CNT=84
+ROWS=7
+COLS=FRQ_CNT//ROWS
+SHAPE2D = (ROWS,COLS,1)
+EPOCHS=100 # 1000 # 200
 SPLITS=5
 FOLDS=5   # make this 5 for serious testing
 show_time()
 
 
-# In[27]:
+# In[5]:
 
 
 loader=GenCodeLoader()
 loader.set_label(1)
-loader.set_check_utr(False)
+loader.set_check_utr(True)
 pcdf=loader.load_file(PC_FULLPATH)
 print("PC seqs loaded:",len(pcdf))
 loader.set_label(0)
@@ -114,7 +123,7 @@ print("NC seqs loaded:",len(ncdf))
 show_time()
 
 
-# In[28]:
+# In[6]:
 
 
 def dataframe_length_filter(df,low_high):
@@ -140,21 +149,23 @@ ncdf=None
 
 # ## Data Prep
 
-# In[29]:
+# In[7]:
 
 
-pc_train=pc_all[:PC_TRAINS] 
-nc_train=nc_all[:NC_TRAINS]
-print("PC train, NC train:",len(pc_train),len(nc_train))
-pc_test=pc_all[PC_TRAINS:PC_TRAINS+PC_TESTS] 
-nc_test=nc_all[NC_TRAINS:NC_TRAINS+PC_TESTS]
+#pc_train=pc_all[:PC_TRAINS] 
+#nc_train=nc_all[:NC_TRAINS]
+#print("PC train, NC train:",len(pc_train),len(nc_train))
+#pc_test=pc_all[PC_TRAINS:PC_TRAINS+PC_TESTS] 
+#nc_test=nc_all[NC_TRAINS:NC_TRAINS+PC_TESTS]
+pc_test=pc_all[:PC_TESTS] 
+nc_test=nc_all[:PC_TESTS]
 print("PC test, NC test:",len(pc_test),len(nc_test))
 # Garbage collection
 pc_all=None
 nc_all=None
 
 
-# In[30]:
+# In[8]:
 
 
 def prepare_x_and_y(seqs1,seqs0):
@@ -176,13 +187,13 @@ def prepare_x_and_y(seqs1,seqs0):
     return all_seqs,all_labels  # use this to test unshuffled
     X,y = shuffle(all_seqs,all_labels) # sklearn.utils.shuffle 
     return X,y
-Xseq,y=prepare_x_and_y(pc_train,nc_train)
-print(Xseq[:3])
-print(y[:3])
+#Xseq,y=prepare_x_and_y(pc_train,nc_train)
+#print(Xseq[:3])
+#print(y[:3])
 show_time()
 
 
-# In[31]:
+# In[9]:
 
 
 def seqs_to_kmer_freqs(seqs,max_K):
@@ -198,87 +209,33 @@ def seqs_to_kmer_freqs(seqs,max_K):
         freqs = list(fdict.values())
         collection.append(freqs)
     return np.asarray(collection)
-Xfrq=seqs_to_kmer_freqs(Xseq,MAX_K)
+#Xfrq=seqs_to_kmer_freqs(Xseq,MAX_K)
 # Garbage collection
-Xseq = None
+#Xseq = None
 show_time()
 
 
-# ## Build and train a neural network
-
-# In[32]:
+# In[10]:
 
 
-def make_DNN():
-    dt=np.float32
-    print("make_DNN")
-    print("input shape:",INPUT_SHAPE)
-    dnn = Sequential()
-    dnn.add(Dense(NEURONS,activation="sigmoid",dtype=dt))  # relu doesn't work as well
-    dnn.add(Dropout(DROP_RATE))
-    dnn.add(Dense(NEURONS,activation="sigmoid",dtype=dt)) 
-    dnn.add(Dropout(DROP_RATE))
-    dnn.add(Dense(1,activation="sigmoid",dtype=dt))   
-    dnn.compile(optimizer='adam',    # adadelta doesn't work as well
-                loss=BinaryCrossentropy(from_logits=False),
-                metrics=['accuracy'])   # add to default metrics=loss
-    dnn.build(input_shape=INPUT_SHAPE) 
-    return dnn
-model = make_DNN()
-print(model.summary())
+def reshape(frequency_matrix):
+    seq_cnt,frq_cnt=Xfrq.shape 
+    # CNN inputs require a last dimension = numbers per pixel.
+    # For RGB images it is 3.
+    # For our frequency matrix it is 1.
+    new_matrix = frequency_matrix.reshape(seq_cnt,ROWS,COLS,1)
+    return new_matrix
 
-
-# In[33]:
-
-
-def do_cross_validation(X,y):
-    cv_scores = []
-    fold=0
-    mycallbacks = [ModelCheckpoint(
-        filepath=BESTMODELPATH, save_best_only=True, 
-        monitor='val_accuracy', mode='max')]   
-    # When shuffle=True, the valid indices are a random subset.
-    splitter = KFold(n_splits=SPLITS,shuffle=True) 
-    model = None
-    for train_index,valid_index in splitter.split(X):
-        if fold < FOLDS:
-            fold += 1
-            X_train=X[train_index] # inputs for training
-            y_train=y[train_index] # labels for training
-            X_valid=X[valid_index] # inputs for validation
-            y_valid=y[valid_index] # labels for validation
-            print("MODEL")
-            # Call constructor on each CV. Else, continually improves the same model.
-            model = model = make_DNN()
-            print("FIT")  # model.fit() implements learning
-            start_time=time.time()
-            history=model.fit(X_train, y_train, 
-                    epochs=EPOCHS, 
-                    verbose=1,  # ascii art while learning
-                    callbacks=mycallbacks,   # called at end of each epoch
-                    validation_data=(X_valid,y_valid))
-            end_time=time.time()
-            elapsed_time=(end_time-start_time)                        
-            print("Fold %d, %d epochs, %d sec"%(fold,EPOCHS,elapsed_time))
-            # print(history.history.keys())  # all these keys will be shown in figure
-            pd.DataFrame(history.history).plot(figsize=(8,5))
-            plt.grid(True)
-            plt.gca().set_ylim(0,1) # any losses > 1 will be off the scale
-            plt.show()
-    return model  # parameters at end of training
-
-
-# In[34]:
-
-
-show_time()
-last_model = do_cross_validation(Xfrq,y)
-last_model.save(LASTMODELPATH)
+#print("Xfrq")
+#print("Xfrq type",type(Xfrq))
+#print("Xfrq shape",Xfrq.shape)
+#Xfrq2D = reshape(Xfrq)
+#print("Xfrq2D shape",Xfrq2D.shape)
 
 
 # ## Test the neural network
 
-# In[35]:
+# In[11]:
 
 
 def show_test_AUC(model,X,y):
@@ -301,7 +258,13 @@ def show_test_accuracy(model,X,y):
     print("%s: %.2f%%" % (model.metrics_names[1], scores[1]*100))
 
 
-# In[36]:
+# In[12]:
+
+
+model = load_model(BESTMODELPATH)  # keras.load_model()
+
+
+# In[13]:
 
 
 print("Accuracy on test data.")
@@ -311,14 +274,15 @@ Xseq,y=prepare_x_and_y(pc_test,nc_test)
 print("Extract K-mer features...")
 show_time()
 Xfrq=seqs_to_kmer_freqs(Xseq,MAX_K)
+Xfrq2D = reshape(Xfrq)
 print("Plot...")
 show_time()
-show_test_AUC(last_model,Xfrq,y)
-show_test_accuracy(last_model,Xfrq,y)
+show_test_AUC(model,Xfrq2D,y)
+show_test_accuracy(model,Xfrq2D,y)
 show_time()
 
 
-# In[36]:
+# In[13]:
 
 
 

@@ -1,10 +1,13 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# # MLP ORF to GenCode 
-# Use Wen et al 2019 conditions. Use MLP not CNN.
+# # Wen CNN 
+# 
+# Simulate the CNN approach of Wen et al. 2019.
+# 
+# Notebook 101 ran to completion on PC. Now run more epochs on CoLab.
 
-# In[23]:
+# In[6]:
 
 
 import time
@@ -14,7 +17,7 @@ def show_time():
 show_time()
 
 
-# In[24]:
+# In[7]:
 
 
 import numpy as np
@@ -27,6 +30,7 @@ from sklearn.metrics import roc_curve
 from sklearn.metrics import roc_auc_score
 
 from keras.models import Sequential
+from keras.layers import Conv2D,MaxPooling2D
 from keras.layers import Dense,Embedding,Dropout
 from keras.layers import Flatten,TimeDistributed
 from keras.losses import BinaryCrossentropy
@@ -34,7 +38,7 @@ from keras.callbacks import ModelCheckpoint
 from keras.models import load_model
 
 
-# In[25]:
+# In[8]:
 
 
 import sys
@@ -70,41 +74,45 @@ else:
         from SimTools.RNA_describe import ORF_counter
         from SimTools.GenCodeTools import GenCodeLoader
         from SimTools.KmerTools import KmerTools
-BESTMODELPATH=DATAPATH+"BestModel"  # saved on cloud instance and lost after logout
-LASTMODELPATH=DATAPATH+"LastModel"  # saved on Google Drive but requires login
+BESTMODELPATH=DATAPATH+"BestModel-Wen"  # saved on cloud instance and lost after logout
+LASTMODELPATH=DATAPATH+"LastModel-Wen"  # saved on Google Drive but requires login
 
 
 # ## Data Load
 
-# In[26]:
+# In[9]:
 
 
-PC_TRAINS=10000
-NC_TRAINS=10000
+PC_TRAINS=8000
+NC_TRAINS=8000
 PC_TESTS=2000
 NC_TESTS=2000   
 PC_LENS=(200,4000)
-NC_LENS=(250,3000)   # Wen used 3500 for hyperparameter, 3000 for train
+NC_LENS=(200,4000)   # Wen used 3500 for hyperparameter, 3000 for train
 PC_FILENAME='gencode.v26.pc_transcripts.fa.gz'
 NC_FILENAME='gencode.v26.lncRNA_transcripts.fa.gz'
 PC_FULLPATH=DATAPATH+PC_FILENAME
 NC_FULLPATH=DATAPATH+NC_FILENAME
 MAX_K = 3 
-INPUT_SHAPE=(None,84)  # 4^3 + 4^2 + 4^1
-NEURONS=128
-DROP_RATE=0.01
-EPOCHS=1000 # 1000 # 200
+# With K={1,2,3}, num K-mers is 4^3 + 4^2 + 4^1 = 84.
+# Wen specified 17x20 which is impossible.
+# The factors of 84 are 1, 2, 3, 4, 6, 7, 12, 14, 21, 28, 42 and 84.
+FRQ_CNT=84
+ROWS=7
+COLS=FRQ_CNT//ROWS
+SHAPE2D = (ROWS,COLS,1)
+EPOCHS=100 # 1000 # 200
 SPLITS=5
 FOLDS=5   # make this 5 for serious testing
 show_time()
 
 
-# In[27]:
+# In[10]:
 
 
 loader=GenCodeLoader()
 loader.set_label(1)
-loader.set_check_utr(False)
+loader.set_check_utr(True)
 pcdf=loader.load_file(PC_FULLPATH)
 print("PC seqs loaded:",len(pcdf))
 loader.set_label(0)
@@ -114,7 +122,7 @@ print("NC seqs loaded:",len(ncdf))
 show_time()
 
 
-# In[28]:
+# In[11]:
 
 
 def dataframe_length_filter(df,low_high):
@@ -140,7 +148,7 @@ ncdf=None
 
 # ## Data Prep
 
-# In[29]:
+# In[12]:
 
 
 pc_train=pc_all[:PC_TRAINS] 
@@ -154,7 +162,7 @@ pc_all=None
 nc_all=None
 
 
-# In[30]:
+# In[13]:
 
 
 def prepare_x_and_y(seqs1,seqs0):
@@ -177,12 +185,12 @@ def prepare_x_and_y(seqs1,seqs0):
     X,y = shuffle(all_seqs,all_labels) # sklearn.utils.shuffle 
     return X,y
 Xseq,y=prepare_x_and_y(pc_train,nc_train)
-print(Xseq[:3])
-print(y[:3])
+#print(Xseq[:3])
+#print(y[:3])
 show_time()
 
 
-# In[31]:
+# In[14]:
 
 
 def seqs_to_kmer_freqs(seqs,max_K):
@@ -204,34 +212,58 @@ Xseq = None
 show_time()
 
 
+# In[15]:
+
+
+def reshape(frequency_matrix):
+    seq_cnt,frq_cnt=Xfrq.shape 
+    # CNN inputs require a last dimension = numbers per pixel.
+    # For RGB images it is 3.
+    # For our frequency matrix it is 1.
+    new_matrix = frequency_matrix.reshape(seq_cnt,ROWS,COLS,1)
+    return new_matrix
+
+print("Xfrq")
+print("Xfrq type",type(Xfrq))
+print("Xfrq shape",Xfrq.shape)
+Xfrq2D = reshape(Xfrq)
+print("Xfrq2D shape",Xfrq2D.shape)
+
+
 # ## Build and train a neural network
 
-# In[32]:
+# In[16]:
 
 
-def make_DNN():
+def make_DNN(shape):
     dt=np.float32
     print("make_DNN")
-    print("input shape:",INPUT_SHAPE)
+    print("input shape:",shape)
+    WIDTH=(3,3)
+    STRIDE=(1,1)
     dnn = Sequential()
-    dnn.add(Dense(NEURONS,activation="sigmoid",dtype=dt))  # relu doesn't work as well
-    dnn.add(Dropout(DROP_RATE))
-    dnn.add(Dense(NEURONS,activation="sigmoid",dtype=dt)) 
-    dnn.add(Dropout(DROP_RATE))
+    dnn.add(Conv2D(filters=32,kernel_size=WIDTH,strides=STRIDE,activation="relu",padding="same",
+            input_shape=shape))
+    dnn.add(Conv2D(filters=64,kernel_size=WIDTH,strides=STRIDE,activation="relu",padding="same"))
+    dnn.add(MaxPooling2D())
+    dnn.add(Flatten())
+    dnn.add(Dropout(0.25))
+    dnn.add(Dense(128,activation="sigmoid",dtype=dt)) 
+    dnn.add(Dropout(0.50))
     dnn.add(Dense(1,activation="sigmoid",dtype=dt))   
     dnn.compile(optimizer='adam',    # adadelta doesn't work as well
                 loss=BinaryCrossentropy(from_logits=False),
                 metrics=['accuracy'])   # add to default metrics=loss
-    dnn.build(input_shape=INPUT_SHAPE) 
+    dnn.build(input_shape=shape) 
     return dnn
-model = make_DNN()
+model = make_DNN(SHAPE2D)
 print(model.summary())
 
 
-# In[33]:
+# In[17]:
 
 
-def do_cross_validation(X,y):
+def do_cross_validation(X,y,shape):
     cv_scores = []
     fold=0
     mycallbacks = [ModelCheckpoint(
@@ -249,7 +281,7 @@ def do_cross_validation(X,y):
             y_valid=y[valid_index] # labels for validation
             print("MODEL")
             # Call constructor on each CV. Else, continually improves the same model.
-            model = model = make_DNN()
+            model = model = make_DNN(shape)
             print("FIT")  # model.fit() implements learning
             start_time=time.time()
             history=model.fit(X_train, y_train, 
@@ -268,17 +300,17 @@ def do_cross_validation(X,y):
     return model  # parameters at end of training
 
 
-# In[34]:
+# In[18]:
 
 
 show_time()
-last_model = do_cross_validation(Xfrq,y)
+last_model = do_cross_validation(Xfrq2D,y,SHAPE2D)
 last_model.save(LASTMODELPATH)
 
 
 # ## Test the neural network
 
-# In[35]:
+# In[19]:
 
 
 def show_test_AUC(model,X,y):
@@ -301,7 +333,7 @@ def show_test_accuracy(model,X,y):
     print("%s: %.2f%%" % (model.metrics_names[1], scores[1]*100))
 
 
-# In[36]:
+# In[20]:
 
 
 print("Accuracy on test data.")
@@ -311,14 +343,15 @@ Xseq,y=prepare_x_and_y(pc_test,nc_test)
 print("Extract K-mer features...")
 show_time()
 Xfrq=seqs_to_kmer_freqs(Xseq,MAX_K)
+Xfrq2D = reshape(Xfrq)
 print("Plot...")
 show_time()
-show_test_AUC(last_model,Xfrq,y)
-show_test_accuracy(last_model,Xfrq,y)
+show_test_AUC(last_model,Xfrq2D,y)
+show_test_accuracy(last_model,Xfrq2D,y)
 show_time()
 
 
-# In[36]:
+# In[20]:
 
 
 
