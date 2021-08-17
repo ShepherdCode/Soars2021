@@ -20,6 +20,8 @@ class GenCodeLoader():
         self.pattern3=re.compile('.*UTR3:')
         self.check_list = None
         self.check_utr = False
+        self.min_size = None
+        self.max_size = None
     def set_label(self,label):
         '''
         Set one label used for subsequent sequences.
@@ -42,6 +44,9 @@ class GenCodeLoader():
         The parameter is type boolean.
         '''
         self.check_utr=check_utr
+    def set_check_size(self,min,max):
+        self.min_size = min
+        self.max_size = max
     def __save_previous(self,one_def,one_seq):
         '''
         For internal use only.
@@ -56,6 +61,11 @@ class GenCodeLoader():
                 return
             if self.pattern3.match(one_def) is None:
                 return
+        seq_len = len(one_seq)
+        if self.min_size is not None and seq_len < self.min_size:
+            return
+        if self.max_size is not None and seq_len > self.max_size:
+            return
         VERSION = '.'
         one_id = one_def[1:].split(VERSION)[0]
         if self.check_list is not None:
